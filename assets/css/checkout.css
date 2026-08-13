@@ -1,0 +1,341 @@
+/**
+ * One Page Checkout — presentation.
+ *
+ * ## How this file works, and why
+ *
+ * Elementor Pro's checkout widget already owns the layout and the section chrome, and it
+ * exposes a full design-token API to configure both:
+ *
+ *   --sections-*        card background, border colour/type/radius, padding, margin, titles
+ *   --forms-*           field radius, padding, row gap, label colour and spacing
+ *   --order-summary-*   item and total colours, divider colour/weight, row gaps
+ *   --purchase-button-* width, padding, radius
+ *
+ * Its own rules are three classes deep
+ * (`.elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review`),
+ * so overriding them means a specificity war and `!important`. Setting the tokens instead
+ * wins without one, because custom properties inherit and Elementor's own rules consume
+ * them.
+ *
+ * It also keeps the client in control: values set in Elementor's UI are emitted as
+ * element-scoped CSS, which overrides everything here. We are supplying better defaults,
+ * not overruling the page builder.
+ *
+ * ## Rules this file obeys
+ *
+ * 1. Scoped under `.beeoch-opc-active`, a body class present only while the flag is on.
+ * 2. CSS only — the review table is replaced on every refresh, so anything DOM-based
+ *    would be undone.
+ * 3. Nothing plugin-owned is removed or `display: none`d. Six of the eight refresh
+ *    fragments belong to third parties and must keep existing and keep a box.
+ * 4. No colour or font is invented. Tokens are set in inherited or neutral terms so the
+ *    existing visual design carries through.
+ *
+ * ## Layout
+ *
+ * Deliberately absent. Elementor builds the two-column grid itself
+ * (`.e-checkout__container { display:grid; grid-template-columns:56% auto }`) and
+ * collapses it on small screens. An earlier revision added a second grid inside
+ * `#customer_details`, which broke the page: `.col-2` (shipping) renders but is EMPTY
+ * unless "ship to a different address" is ticked, so billing was squeezed to half width
+ * beside a blank bordered box. Check what the markup already does before laying anything
+ * out.
+ */
+
+/* --------------------------------------------------------------------------
+ * 1. Design tokens
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page {
+	/* Section cards — visible edge, comfortable padding, consistent rhythm. */
+	--sections-border-type: solid;
+	--sections-border-color: rgba( 128, 128, 128, 0.26 );
+	--sections-border-radius: 6px;
+	--sections-padding: clamp( 1rem, 2vw, 1.75rem );
+	--sections-margin: clamp( 1rem, 2vw, 1.5rem );
+	--sections-title-spacing: 0.85em;
+
+	/* Form fields — taller targets, softer corners, calmer labels. */
+	--forms-fields-border-radius: 6px;
+	--forms-fields-padding: 0.75em 0.9em;
+	--forms-rows-gap: 1em;
+	--forms-label-spacing: 0.35em;
+
+	/* Order summary — clearer separation between lines. */
+	--order-summary-rows-gap-top: 0.7em;
+	--order-summary-rows-gap-bottom: 0.7em;
+	--order-summary-items-divider-color: rgba( 128, 128, 128, 0.2 );
+	--order-summary-items-divider-weight: 1px;
+	--order-summary-totals-divider-color: rgba( 128, 128, 128, 0.3 );
+	--order-summary-totals-divider-weight: 1px;
+
+	/* Place Order — full width reads as the single next step. */
+	--purchase-button-width: 100%;
+	--purchase-button-padding: 0.9em 1.25em;
+	--purchase-button-border-radius: 6px;
+}
+
+/*
+ * Elementor composes the card border from a type token and its own width. Setting the
+ * width needs one rule that outbids its three-class selector; four classes does it
+ * without `!important`. This is the only specificity override in the file.
+ */
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #customer_details .col-1,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout #payment {
+	border-width: 1px;
+}
+
+/* --------------------------------------------------------------------------
+ * 2. Layout — the only rule Elementor does not already provide
+ * ----------------------------------------------------------------------- */
+
+/* Keep the summary in view down a long billing form. */
+@media ( min-width: 1025px ) and ( min-height: 700px ) {
+	.beeoch-opc-active .e-checkout__column-end {
+		position: sticky;
+		top: 1.5rem;
+		align-self: start;
+	}
+}
+
+/*
+ * `.col-2` holds shipping and is empty whenever the store ships to the billing address
+ * only. Collapse it so it contributes no space — but never `display: none`, which would
+ * hide the fields the moment "ship to a different address" is ticked.
+ */
+.beeoch-opc-active #customer_details > .col-2:not( :has( .form-row ) ) {
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 3. Quantity stepper
+ *
+ * Our own markup, so plain styling. Inherits the theme's font and colour; only
+ * structure is specified. Sits on its own line so it never crowds long product titles.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-qty {
+	display: inline-flex;
+	align-items: stretch;
+	vertical-align: middle;
+	margin-top: 0.5em;
+	border: 1px solid rgba( 128, 128, 128, 0.3 );
+	border-radius: 4px;
+	line-height: 1;
+	overflow: hidden;
+	font-size: 0.85em;
+}
+
+.beeoch-opc-qty__step {
+	appearance: none;
+	background: transparent;
+	border: 0;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	line-height: 1;
+	margin: 0;
+	min-width: 2.2em;
+	padding: 0.45em 0.4em;
+	text-align: center;
+	transition: background-color 120ms ease;
+}
+
+.beeoch-opc-qty__step:hover,
+.beeoch-opc-qty__step:focus-visible {
+	background: rgba( 128, 128, 128, 0.14 );
+}
+
+.beeoch-opc-qty__step[disabled] {
+	cursor: default;
+	opacity: 0.4;
+}
+
+.beeoch-opc-qty__input {
+	appearance: textfield;
+	-moz-appearance: textfield;
+	background: transparent;
+	border: 0;
+	border-left: 1px solid rgba( 128, 128, 128, 0.3 );
+	border-right: 1px solid rgba( 128, 128, 128, 0.3 );
+	border-radius: 0;
+	color: inherit;
+	font: inherit;
+	margin: 0;
+	min-height: 0;
+	padding: 0.45em 0.2em;
+	text-align: center;
+	width: 3.2em;
+}
+
+/* Spinners duplicate the +/- buttons and crowd a control this size. */
+.beeoch-opc-qty__input::-webkit-outer-spin-button,
+.beeoch-opc-qty__input::-webkit-inner-spin-button {
+	appearance: none;
+	margin: 0;
+}
+
+.beeoch-opc-qty__input:focus {
+	outline: 2px solid currentColor;
+	outline-offset: -2px;
+}
+
+/*
+ * The wrapped markup stays in the DOM: on a subscription line it carries the recurring
+ * price, trial and sign-up fee that Subscriptions injects through this same filter.
+ * Only core's "x N" is hidden, and by clipping rather than display:none so it keeps a
+ * box for any script that measures it.
+ */
+.beeoch-opc-qty__passthrough {
+	display: inline;
+}
+
+.beeoch-opc-qty__passthrough .product-quantity {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect( 0, 0, 0, 0 );
+	white-space: nowrap;
+	border: 0;
+}
+
+/* Until the AJAX layer is ready the control cannot write to the cart. */
+.beeoch-opc-qty[data-state="pending"] {
+	opacity: 0.65;
+}
+
+.beeoch-opc-qty[data-state="pending"] .beeoch-opc-qty__step,
+.beeoch-opc-qty[data-state="pending"] .beeoch-opc-qty__input {
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* Set while an update is in flight, so rapid clicks cannot stack requests. */
+.beeoch-opc-qty[data-state="busy"] {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Promotions panel
+ *
+ * One labelled container holding the coupon field, Advanced Coupons box, gift-card
+ * redemption and points conversion — each still rendered by its owning plugin, just
+ * gathered in one place instead of scattered across four hooks.
+ *
+ * Sits outside #order_review by design, so it is never inside a replaced fragment.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-promo {
+	border: 1px solid rgba( 128, 128, 128, 0.26 );
+	border-radius: 6px;
+	margin-bottom: clamp( 1rem, 2vw, 1.5rem );
+	overflow: hidden;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__summary {
+	cursor: pointer;
+	font-size: 0.95em;
+	font-weight: 600;
+	list-style: none;
+	padding: 0.85em clamp( 0.9rem, 1.6vw, 1.25rem );
+	position: relative;
+	user-select: none;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__summary::-webkit-details-marker {
+	display: none;
+}
+
+/* Chevron drawn in CSS so no icon font or SVG dependency is introduced. */
+.beeoch-opc-active .beeoch-opc-promo__summary::after {
+	content: "";
+	position: absolute;
+	right: clamp( 0.9rem, 1.6vw, 1.25rem );
+	top: 50%;
+	width: 0.5em;
+	height: 0.5em;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: translateY( -70% ) rotate( 45deg );
+	transition: transform 150ms ease;
+	opacity: 0.6;
+}
+
+.beeoch-opc-active .beeoch-opc-promo[open] .beeoch-opc-promo__summary::after {
+	transform: translateY( -30% ) rotate( -135deg );
+}
+
+.beeoch-opc-active .beeoch-opc-promo__summary:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: -2px;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__body {
+	border-top: 1px solid rgba( 128, 128, 128, 0.26 );
+	padding: clamp( 0.9rem, 1.6vw, 1.25rem );
+}
+
+/* Each relocated block keeps its own markup; we only space them apart. */
+.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item {
+	margin-top: 1em;
+	padding-top: 1em;
+	border-top: 1px solid rgba( 128, 128, 128, 0.18 );
+}
+
+/*
+ * Plugin blocks often ship their own outer margin intended for a standalone position on
+ * the page. Inside the panel that doubles up, so the first and last are flattened.
+ */
+.beeoch-opc-active .beeoch-opc-promo__item > *:first-child {
+	margin-top: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__item > *:last-child {
+	margin-bottom: 0;
+}
+
+/* The relocated coupon form should read as part of the panel, not a floating notice. */
+.beeoch-opc-active .beeoch-opc-promo .woocommerce-form-coupon-toggle,
+.beeoch-opc-active .beeoch-opc-promo .woocommerce-info {
+	background: transparent;
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
+/*
+ * Blocks gathered into the panel by JavaScript rather than by hook relocation
+ * (`.e-coupon-box`, `#pwgc-redeem-gift-card-form`). They arrive carrying styling meant for
+ * a standalone position on the page, so their own frame is flattened and the panel's
+ * spacing takes over.
+ */
+.beeoch-opc-active .beeoch-opc-promo__item--gathered {
+	background: transparent;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	margin: 0;
+	padding: 0;
+	width: auto;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__item--gathered + .beeoch-opc-promo__item--gathered,
+.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item--gathered {
+	margin-top: 1em;
+	padding-top: 1em;
+	border-top: 1px solid rgba( 128, 128, 128, 0.18 );
+}
+
+/* Elementor's coupon box sets its own width and section padding for a full-row position. */
+.beeoch-opc-active .beeoch-opc-promo__item--gathered.e-coupon-box {
+	--sections-padding: 0;
+	--sections-margin: 0;
+	max-width: none;
+}
