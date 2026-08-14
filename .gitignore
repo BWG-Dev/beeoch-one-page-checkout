@@ -1,0 +1,42 @@
+# The repository root is the plugin folder, and the plugin IS the deployable artefact:
+# everything tracked here is meant to land in wp-content/plugins/ as-is. There is no build
+# step — no Composer, no bundler, no compiled assets — so nothing is generated and ignored
+# for that reason.
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.sublime-*
+*.swp
+*~
+
+# Never ship a dependency tree from a machine — this plugin has none by design.
+node_modules/
+vendor/
+
+# Local artefacts that have appeared in this folder during development
+*.log
+*.bak
+*.tmp
+*.orig
+*.rej
+_*.tmp
+
+# Packaged builds
+*.zip
+*.tar.gz
+
+# Anything carrying credentials or store data must never be committed. The working copy this
+# was developed in also holds a database dump containing ~230 real customer email addresses;
+# it lives outside this folder, but these patterns are here as a backstop in case a copy is
+# ever dropped in.
+*.sql
+*.sql.gz
+wp-config.php
+*credentials*
+*secret*
+.env
+.env.*

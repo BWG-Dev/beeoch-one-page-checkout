@@ -100,6 +100,49 @@ class Mutations {
 	}
 
 	/**
+	 * Remove a line from the cart.
+	 *
+	 * Delegates to `WC()->cart->remove_cart_item()` for the same reason `set_quantity()` is
+	 * used above: it fires `woocommerce_cart_item_removed` and friends, which Product Bundles
+	 * relies on to take a container's children with it, and coupon and points plugins rely on
+	 * to recalculate. Unsetting the cart contents directly would skip all of that.
+	 *
+	 * @param string $cart_item_key Cart item key.
+	 * @return array{ok:bool, code:string, quantity:int}
+	 */
+	public function remove_item( string $cart_item_key ): array {
+		$cart = ( function_exists( 'WC' ) && WC()->cart ) ? WC()->cart : null;
+
+		if ( null === $cart ) {
+			return $this->fail( 'no_cart' );
+		}
+
+		$cart_item = $cart->get_cart_item( $cart_item_key );
+
+		if ( ! is_array( $cart_item ) || array() === $cart_item ) {
+			// Already gone — a second click, or another tab got there first.
+			return $this->fail( 'unknown_item' );
+		}
+
+		if ( ! $this->policy->for_item( $cart_item_key, $cart_item )['removable'] ) {
+			// Bundle children and renewal carts, enforced server-side as well as in the UI.
+			return $this->fail( 'not_removable' );
+		}
+
+		if ( ! $cart->remove_cart_item( $cart_item_key ) ) {
+			return $this->fail( 'rejected' );
+		}
+
+		$cart->calculate_totals();
+
+		return array(
+			'ok'       => true,
+			'code'     => 'removed',
+			'quantity' => 0,
+		);
+	}
+
+	/**
 	 * Hold the requested quantity inside what WooCommerce would allow.
 	 *
 	 * Uses the product's own max-purchase rule so stock, backorder settings and any

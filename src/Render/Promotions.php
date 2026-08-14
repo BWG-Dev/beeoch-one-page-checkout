@@ -68,6 +68,26 @@ class Promotions {
 			'method'   => 'display_checkout_tabbed_box',
 			'priority' => 11,
 			'label'    => 'advanced-coupons',
+			/*
+			 * `wrap` opts this block into our own <details> row.
+			 *
+			 * The previous approach tried to drive each plugin's existing toggle and style
+			 * their headers to match. That failed repeatedly, because two toggles ended up
+			 * coexisting: the plugins delegate to `h3`, so our injected heading double-fired
+			 * theirs; Advanced Coupons shows via a CSS class where WPGens uses inline styles,
+			 * so no single technique collapsed both; and they bind after DOM-ready, so our
+			 * triggers hit nothing.
+			 *
+			 * This approach removes their toggle from the picture entirely rather than
+			 * driving it: their header is hidden and their content forced permanently
+			 * visible, so their JavaScript has nothing to act on, and OUR <details> is the
+			 * only thing that opens and closes. One toggle, no collisions, no timing races.
+			 *
+			 * Rendered server-side, so it is in the markup on first paint — no flash.
+			 */
+			'wrap'     => true,
+			'title'    => 'Apply store credit discounts?',
+			'icon'     => '<rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>',
 		),
 		array(
 			'hook'     => 'woocommerce_before_checkout_form',
@@ -82,6 +102,9 @@ class Promotions {
 			'method'   => 'display_points_conversion_notice',
 			'priority' => 10,
 			'label'    => 'points',
+			'wrap'     => true,
+			'title'    => 'Apply Pollen Points discount?',
+			'icon'     => '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
 		),
 	);
 
@@ -114,6 +137,53 @@ class Promotions {
 		 */
 		add_action( 'woocommerce_before_checkout_form', array( $this, 'collect_early' ), 0 );
 		add_action( 'woocommerce_checkout_before_order_review', array( $this, 'render' ), 5 );
+	}
+
+	/**
+	 * Find a block's configuration by label.
+	 *
+	 * @param string $label Block label.
+	 * @return array<string, mixed>
+	 */
+	private function spec_for( string $label ): array {
+		foreach ( self::BLOCKS as $block ) {
+			if ( $block['label'] === $label ) {
+				return $block;
+			}
+		}
+
+		return array();
+	}
+
+	/**
+	 * Put a block inside our own collapsible row.
+	 *
+	 * `<details>` rather than a scripted accordion: it opens and closes with no JavaScript at
+	 * all, is keyboard operable and announced correctly by screen readers for free, and
+	 * cannot fall out of step with a plugin's own state — because the plugin no longer has
+	 * any say in whether its content is visible.
+	 *
+	 * Collapsed by default (no `open` attribute) so the rows read as a compact stack.
+	 *
+	 * @param array<string, mixed> $spec   Block configuration.
+	 * @param string               $markup Plugin-rendered markup.
+	 */
+	private function wrap_in_row( array $spec, string $markup ): string {
+		$icon = '';
+
+		if ( ! empty( $spec['icon'] ) ) {
+			$icon = sprintf(
+				'<span class="beeoch-opc-acc__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">%s</svg></span>',
+				$spec['icon'] // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static SVG path data defined in this file.
+			);
+		}
+
+		return sprintf(
+			'<details class="beeoch-opc-acc" name="beeoch-opc-promo"><summary class="beeoch-opc-acc__head">%s<h3 class="beeoch-opc-acc__title">%s</h3></summary><div class="beeoch-opc-acc__body">%s</div></details>',
+			$icon, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built above from static data.
+			esc_html( (string) ( $spec['title'] ?? '' ) ),
+			$markup // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-generated markup, already escaped by its author.
+		);
 	}
 
 	/**
@@ -182,6 +252,12 @@ class Promotions {
 				continue;
 			}
 
+			$spec = $this->spec_for( $label );
+
+			if ( ! empty( $spec['wrap'] ) ) {
+				$markup = $this->wrap_in_row( $spec, $markup );
+			}
+
 			$sections[] = sprintf(
 				'<div class="beeoch-opc-promo__item beeoch-opc-promo__item--%s">%s</div>',
 				esc_attr( $label ),
@@ -194,17 +270,16 @@ class Promotions {
 		}
 
 		/*
-		 * <details> rather than a JavaScript accordion: keyboard accessible and screen-reader
-		 * friendly for free, and it keeps working if our script fails to load. Open by
-		 * default is deliberate — a collapsed promo panel on a store with points, gift cards
-		 * and store credit hides the things regular customers came to use.
+		 * A plain container, not a <details>.
+		 *
+		 * This began as a collapsible panel with its own "Discounts & rewards" heading, but
+		 * each block inside is itself collapsible — so the customer faced a collapsible
+		 * holding four collapsibles, and had to open two things to reach a coupon field.
+		 * Dropping the outer layer leaves four uniform rows at one level, which is what the
+		 * consolidation was for.
 		 */
 		printf(
-			'<details class="beeoch-opc-promo" open>
-				<summary class="beeoch-opc-promo__summary">%s</summary>
-				<div class="beeoch-opc-promo__body">%s</div>
-			</details>',
-			esc_html__( 'Discounts &amp; rewards', 'beeoch-opc' ),
+			'<div class="beeoch-opc-promo"><div class="beeoch-opc-promo__body">%s</div></div>',
 			implode( '', $sections ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- assembled from escaped parts above.
 		);
 	}

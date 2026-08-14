@@ -13,6 +13,13 @@
 		return;
 	}
 
+	/*
+	 * Marks that our script is alive, used by CSS to hide blocks that are about to be
+	 * moved. Set immediately rather than on ready: if the script never runs the class is
+	 * absent and nothing is hidden, so a JS failure cannot leave the coupon box invisible.
+	 */
+	document.body.classList.add( "beeoch-opc-js" );
+
 	var settings = window.beeochOpc;
 	var DEBOUNCE_MS = 350;
 
@@ -61,7 +68,7 @@
 
 		var f = fields();
 
-		f.action.val( 'set_quantity' );
+		f.action.val( pending.action || 'set_quantity' );
 		f.key.val( pending.key );
 		f.qty.val( String( pending.quantity ) );
 		f.token.val( newToken() );
@@ -148,6 +155,31 @@
 		queue( $control.attr( 'data-beeoch-opc-key' ), next );
 	} );
 
+	/**
+	 * Remove a line.
+	 *
+	 * Rides the same request as a quantity change — same carrier fields, same nonce, same
+	 * replay token — with a different action. No confirmation step: the refresh that follows
+	 * shows the result immediately, and a mis-click is recoverable by re-adding, whereas a
+	 * confirm dialog on every removal is friction on the common case.
+	 */
+	$( document.body ).on( 'click', '.beeoch-opc-qty__remove', function ( event ) {
+		event.preventDefault();
+
+		var $control = $( this ).closest( '.beeoch-opc-qty' );
+
+		if ( $control.attr( 'data-state' ) === 'busy' ) {
+			return;
+		}
+
+		$control.attr( 'data-state', 'busy' );
+
+		pending = { key: $control.attr( 'data-beeoch-opc-key' ), quantity: 0, action: 'remove_item' };
+
+		window.clearTimeout( timer );
+		timer = window.setTimeout( dispatch, 0 );
+	} );
+
 	$( document.body ).on( 'change', '.beeoch-opc-qty__input', function () {
 		var $input = $( this );
 		var $control = $input.closest( '.beeoch-opc-qty' );
@@ -175,8 +207,10 @@
 		 * The payment fragment has just been replaced, so the gift-card form is back in its
 		 * original position and must be gathered again. The coupon box is untouched by the
 		 * refresh, and gather() no-ops for anything already in the panel.
+		 *
 		 */
 		gather();
+		wrapRows();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -220,6 +254,96 @@
 	 * '[id="..."]' goes through querySelectorAll and returns both.
 	 */
 	var GATHER = [ '.e-coupon-box', '[id="pwgc-redeem-gift-card-form"]' ];
+
+	/**
+	 * Rows we build client-side, because these blocks arrive by DOM move rather than being
+	 * rendered by us. Server-side rows are configured in Promotions::BLOCKS instead.
+	 *
+	 * @type {Array<{selector: string, title: string, icon: string}>}
+	 */
+	var WRAP = [
+		{
+			selector: '.e-coupon-box',
+			title: 'Have a coupon?',
+			icon: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>'
+		},
+		{
+			/*
+			 * The gift card differs from the other three in two ways.
+			 *
+			 * It has no toggle of its own, so there is nothing to render inert — our row is
+			 * simply the only behaviour it has ever had.
+			 *
+			 * And it is re-rendered on EVERY checkout refresh, because PW Gift Cards draws it
+			 * from `woocommerce_review_order_before_submit`, inside the replaced payment
+			 * fragment. Each refresh therefore produces a fresh, unwrapped copy: gather()
+			 * moves it in and this wraps it again. The guard is per-element, so the new copy
+			 * is correctly treated as new rather than skipped.
+			 *
+			 * Consequence worth knowing: the row returns to collapsed after any refresh,
+			 * since the wrapped element the customer opened has been replaced.
+			 */
+			selector: '[id="pwgc-redeem-gift-card-form"]',
+			title: 'Have a gift card?',
+			icon: '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>'
+		}
+	];
+
+	/**
+	 * Put a gathered block inside the same <details> row the server-side blocks use.
+	 *
+	 * The plugin's own toggle is left alone but rendered inert: its trigger is hidden and its
+	 * content pinned visible by CSS, so only our row opens and closes. That is the whole
+	 * reason this approach works where the previous one did not — there is never a moment
+	 * when two toggles disagree about what is visible.
+	 *
+	 * The block's existing children are MOVED into our body, so every handler the plugin
+	 * bound survives; jQuery preserves them across a move.
+	 */
+	function wrapRows() {
+		$.each( WRAP, function ( _, spec ) {
+			$( '.beeoch-opc-promo__body' ).find( spec.selector ).each( function () {
+				var $block = $( this );
+
+				if ( $block.data( 'beeochWrapped' ) || ! $block.children().length ) {
+					return;
+				}
+
+				$block.data( "beeochWrapped", true ).addClass( "beeoch-opc-wrapped" );
+
+				var $body = $( '<div/>', { 'class': 'beeoch-opc-acc__body' } );
+
+				// Move, not clone — cloning would drop the plugin's event handlers.
+				$block.children().appendTo( $body );
+
+				var $summary = $( '<summary/>', { 'class': 'beeoch-opc-acc__head' } )
+					.append( $( '<span/>', { 'class': 'beeoch-opc-acc__icon' } ).html( icon( spec.icon ) ) )
+					.append( $( '<h3/>', { 'class': 'beeoch-opc-acc__title', text: spec.title } ) );
+
+				/*
+				 * `name` groups all four rows into an exclusive accordion: opening one closes
+				 * the others, natively, with no JavaScript. Must match the value used by the
+				 * server-rendered rows in Promotions::wrap_in_row().
+				 */
+				$block.append(
+					$( '<details/>', { 'class': 'beeoch-opc-acc', name: 'beeoch-opc-promo' } )
+						.append( $summary, $body )
+				);
+			} );
+		} );
+	}
+
+	/**
+	 * Wrap icon paths in an SVG that inherits the surrounding colour and size.
+	 *
+	 * @param {string} paths Inner SVG markup.
+	 * @return {string} Complete SVG element.
+	 */
+	function icon( paths ) {
+		return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+			'stroke-linecap="round" stroke-linejoin="round" focusable="false" aria-hidden="true">' +
+			paths + '</svg>';
+	}
 
 	/**
 	 * Move the stragglers into the Promotions panel.
@@ -300,8 +424,40 @@
 		}, 250 );
 	} );
 
+	/**
+	 * Fallback for the exclusive accordion.
+	 *
+	 * The rows carry `name="beeoch-opc-promo"`, which groups them natively — Chrome 120+,
+	 * Safari 17.2+, Firefox 130+ close the others automatically. This closes them by hand
+	 * for anything older, and is harmless where the native behaviour already applies because
+	 * the others are shut by the time it runs.
+	 *
+	 * Bound with `capture: true` deliberately: the `toggle` event does not bubble, so a
+	 * delegated listener would never fire without it.
+	 */
+	document.addEventListener(
+		'toggle',
+		function ( event ) {
+			var opened = event.target;
+
+			if ( ! opened || ! opened.matches || ! opened.matches( '.beeoch-opc-acc[open]' ) ) {
+				return;
+			}
+
+			var rows = document.querySelectorAll( '.beeoch-opc-promo .beeoch-opc-acc[open]' );
+
+			Array.prototype.forEach.call( rows, function ( row ) {
+				if ( row !== opened ) {
+					row.open = false;
+				}
+			} );
+		},
+		true
+	);
+
 	$( function () {
 		bind();
 		gather();
+		wrapRows();
 	} );
 } )( jQuery );

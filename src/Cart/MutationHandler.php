@@ -82,8 +82,9 @@ class MutationHandler {
 	 */
 	public function handle( $post_data ): void {
 		$fields = $this->parse( (string) $post_data );
+		$action = (string) ( $fields['beeoch_opc_action'] ?? '' );
 
-		if ( 'set_quantity' !== ( $fields['beeoch_opc_action'] ?? '' ) ) {
+		if ( 'set_quantity' !== $action && 'remove_item' !== $action ) {
 			// An ordinary refresh — address change, shipping choice, or the stock plugin's re-trigger.
 			return;
 		}
@@ -110,10 +111,30 @@ class MutationHandler {
 
 		$this->remember( $token );
 
-		$result = $this->mutations->set_quantity( $key, $quantity );
+		$result = 'remove_item' === $action
+			? $this->mutations->remove_item( $key )
+			: $this->mutations->set_quantity( $key, $quantity );
+
+		/*
+		 * Removing the last line empties the cart, and WooCommerce answers the NEXT refresh
+		 * with "Sorry, your session has expired" — its empty-cart branch runs before anything
+		 * else in WC_AJAX::update_order_review. That message is alarming and wrong: nothing
+		 * expired, the customer emptied their own cart. Suppress that branch for this request
+		 * and say what actually happened.
+		 */
+		if ( $result['ok'] && 'removed' === $result['code'] && $this->cart_is_empty() ) {
+			add_filter( 'woocommerce_checkout_update_order_review_expired', '__return_false' );
+
+			if ( function_exists( 'wc_add_notice' ) ) {
+				wc_add_notice(
+					__( 'Your cart is now empty.', 'beeoch-opc' ),
+					'notice'
+				);
+			}
+		}
 
 		if ( ! $result['ok'] ) {
-			$this->log( sprintf( 'set_quantity refused: %s (key=%s qty=%d)', $result['code'], $key, $quantity ) );
+			$this->log( sprintf( '%s refused: %s (key=%s qty=%d)', $action, $result['code'], $key, $quantity ) );
 
 			/*
 			 * Surface only what the customer can act on. "not_editable" and "unknown_item"
@@ -127,6 +148,13 @@ class MutationHandler {
 				);
 			}
 		}
+	}
+
+	/**
+	 * Whether the cart now holds nothing.
+	 */
+	private function cart_is_empty(): bool {
+		return function_exists( 'WC' ) && WC()->cart && 0 === WC()->cart->get_cart_contents_count();
 	}
 
 	/**

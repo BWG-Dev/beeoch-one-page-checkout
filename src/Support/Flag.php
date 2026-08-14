@@ -51,7 +51,20 @@ class Flag {
 	 * Current mode.
 	 */
 	public static function mode(): string {
-		$mode = (string) get_option( self::OPTION, self::MODE_OFF );
+		/*
+		 * Defaults to ON.
+		 *
+		 * The flag existed so the new checkout could run beside the old one during
+		 * development. That job is done: staging is for showing the plugin as it would
+		 * behave live, and requiring a query argument and an admin capability to see it
+		 * makes the demo unrepresentative.
+		 *
+		 * The option is kept rather than deleted, because it is still the cheapest kill
+		 * switch there is — setting it to `off` restores the original checkout instantly,
+		 * without deactivating the plugin or touching files. `flagged` remains available if
+		 * side-by-side comparison is ever wanted again.
+		 */
+		$mode = (string) get_option( self::OPTION, self::MODE_ON );
 
 		return in_array( $mode, array( self::MODE_OFF, self::MODE_FLAGGED, self::MODE_ON ), true )
 			? $mode

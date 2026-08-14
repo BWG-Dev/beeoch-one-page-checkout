@@ -103,12 +103,37 @@ class QuantityControl {
 		$max      = $this->max_quantity( $product );
 		$min      = 1;
 
+		/*
+		 * The remove control lives in the same wrapper as the stepper so the two read as one
+		 * set of controls for the line. It is rendered only when ItemPolicy allows it —
+		 * bundle children and renewal carts get a stepper but no remove, because removing
+		 * them corrupts state their plugin owns.
+		 */
+		$remove = '';
+
+		if ( $verdict['removable'] ) {
+			$remove = sprintf(
+				'<button type="button" class="beeoch-opc-qty__remove" data-beeoch-opc-remove="1" aria-label="%s" title="%s">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" focusable="false" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
+				</button>',
+				esc_attr(
+					sprintf(
+						/* translators: %s: product name. */
+						__( 'Remove %s from your order', 'beeoch-opc' ),
+						$product->get_name()
+					)
+				),
+				esc_attr__( 'Remove', 'beeoch-opc' )
+			);
+		}
+
 		return sprintf(
 			'<span class="beeoch-opc-qty" data-beeoch-opc-key="%1$s" data-min="%2$d" data-max="%3$s" data-state="pending">
 				<button type="button" class="beeoch-opc-qty__step" data-beeoch-opc-delta="-1" aria-label="%4$s">&minus;</button>
 				<input type="number" class="beeoch-opc-qty__input" value="%5$d" min="%2$d"%6$s step="1"
 					inputmode="numeric" autocomplete="off" aria-label="%7$s" />
 				<button type="button" class="beeoch-opc-qty__step" data-beeoch-opc-delta="1" aria-label="%8$s">+</button>
+				%10$s
 				<span class="beeoch-opc-qty__passthrough">%9$s</span>
 			</span>',
 			esc_attr( $cart_item_key ),
@@ -125,7 +150,8 @@ class QuantityControl {
 				)
 			),
 			esc_attr__( 'Increase quantity', 'beeoch-opc' ),
-			$html // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already-filtered markup from core and other plugins; escaping it would render tags as text.
+			$html, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already-filtered markup from core and other plugins; escaping it would render tags as text.
+			$remove // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built above from escaped parts.
 		);
 	}
 

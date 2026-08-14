@@ -1,96 +1,241 @@
 /**
  * One Page Checkout — presentation.
  *
- * ## How this file works, and why
+ * Stage 1: compact and unified. Two complaints drove this — sections were too loosely
+ * spaced AND had no visible boundaries, so the page read as loose parts rather than one
+ * designed form.
  *
- * Elementor Pro's checkout widget already owns the layout and the section chrome, and it
- * exposes a full design-token API to configure both:
+ * ## Why explicit rules and not only design tokens
  *
- *   --sections-*        card background, border colour/type/radius, padding, margin, titles
- *   --forms-*           field radius, padding, row gap, label colour and spacing
- *   --order-summary-*   item and total colours, divider colour/weight, row gaps
- *   --purchase-button-* width, padding, radius
+ * Elementor Pro's widget exposes a token API (--sections-*, --forms-*, --order-summary-*,
+ * --purchase-button-*) and setting those is the tidiest approach: no specificity war, and
+ * the client can still override from Elementor's UI. Tried on its own, it produced no
+ * visible change — most likely because the values landed close to Elementor's defaults.
  *
- * Its own rules are three classes deep
- * (`.elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review`),
- * so overriding them means a specificity war and `!important`. Setting the tokens instead
- * wins without one, because custom properties inherit and Elementor's own rules consume
- * them.
+ * So this file does both. It sets the tokens AND states the handful of properties that
+ * carry the visual change explicitly. Our stylesheet loads after every Elementor sheet, so
+ * matching their three-class weight is enough for ours to win. A small number of
+ * `!important` declarations remain, and only where a plugin sets the property inline —
+ * inline styles cannot be outranked by specificity at all.
  *
- * It also keeps the client in control: values set in Elementor's UI are emitted as
- * element-scoped CSS, which overrides everything here. We are supplying better defaults,
- * not overruling the page builder.
+ * ## Rules obeyed
  *
- * ## Rules this file obeys
- *
- * 1. Scoped under `.beeoch-opc-active`, a body class present only while the flag is on.
- * 2. CSS only — the review table is replaced on every refresh, so anything DOM-based
- *    would be undone.
- * 3. Nothing plugin-owned is removed or `display: none`d. Six of the eight refresh
- *    fragments belong to third parties and must keep existing and keep a box.
- * 4. No colour or font is invented. Tokens are set in inherited or neutral terms so the
- *    existing visual design carries through.
- *
- * ## Layout
- *
- * Deliberately absent. Elementor builds the two-column grid itself
- * (`.e-checkout__container { display:grid; grid-template-columns:56% auto }`) and
- * collapses it on small screens. An earlier revision added a second grid inside
- * `#customer_details`, which broke the page: `.col-2` (shipping) renders but is EMPTY
- * unless "ship to a different address" is ticked, so billing was squeezed to half width
- * beside a blank bordered box. Check what the markup already does before laying anything
- * out.
+ * 1. Scoped under `.beeoch-opc-active` — a body class present only while the flag is on.
+ * 2. No layout invented. Elementor builds the two-column grid; we only make the summary
+ *    sticky. An earlier revision added its own grid and broke the page, because `.col-2`
+ *    is rendered but EMPTY unless shipping to a different address.
+ * 3. Nothing plugin-owned is removed or display:none'd — six of the eight refresh fragments
+ *    belong to third parties and must keep existing and keep a box.
+ * 4. No colour or font invented. Borders and tints are neutral greys at low alpha, so the
+ *    store's own palette and typography carry through.
  */
 
+.beeoch-opc-active {
+	--opc-rule: rgba( 128, 128, 128, 0.28 );
+	--opc-rule-soft: rgba( 128, 128, 128, 0.16 );
+	--opc-surface: rgba( 128, 128, 128, 0.04 );
+	--opc-pad: 1.15rem;
+	--opc-gap: 0.9rem;
+	--opc-radius: 8px;
+}
+
 /* --------------------------------------------------------------------------
- * 1. Design tokens
+ * 1. Elementor design tokens
  * ----------------------------------------------------------------------- */
 
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page {
-	/* Section cards — visible edge, comfortable padding, consistent rhythm. */
 	--sections-border-type: solid;
-	--sections-border-color: rgba( 128, 128, 128, 0.26 );
-	--sections-border-radius: 6px;
-	--sections-padding: clamp( 1rem, 2vw, 1.75rem );
-	--sections-margin: clamp( 1rem, 2vw, 1.5rem );
-	--sections-title-spacing: 0.85em;
+	--sections-border-color: rgba( 128, 128, 128, 0.28 );
+	--sections-border-radius: 8px;
+	--sections-padding: 1.15rem;
+	--sections-margin: 0.9rem;
+	--sections-title-spacing: 0.7em;
 
-	/* Form fields — taller targets, softer corners, calmer labels. */
 	--forms-fields-border-radius: 6px;
-	--forms-fields-padding: 0.75em 0.9em;
-	--forms-rows-gap: 1em;
-	--forms-label-spacing: 0.35em;
+	--forms-fields-padding: 0.6em 0.75em;
+	--forms-rows-gap: 0.7em;
+	--forms-label-spacing: 0.25em;
 
-	/* Order summary — clearer separation between lines. */
-	--order-summary-rows-gap-top: 0.7em;
-	--order-summary-rows-gap-bottom: 0.7em;
-	--order-summary-items-divider-color: rgba( 128, 128, 128, 0.2 );
+	--order-summary-rows-gap-top: 0.5em;
+	--order-summary-rows-gap-bottom: 0.5em;
+	--order-summary-items-divider-color: rgba( 128, 128, 128, 0.16 );
 	--order-summary-items-divider-weight: 1px;
-	--order-summary-totals-divider-color: rgba( 128, 128, 128, 0.3 );
+	--order-summary-totals-divider-color: rgba( 128, 128, 128, 0.28 );
 	--order-summary-totals-divider-weight: 1px;
 
-	/* Place Order — full width reads as the single next step. */
 	--purchase-button-width: 100%;
-	--purchase-button-padding: 0.9em 1.25em;
+	--purchase-button-padding: 0.85em 1.25em;
 	--purchase-button-border-radius: 6px;
 }
 
-/*
- * Elementor composes the card border from a type token and its own width. Setting the
- * width needs one rule that outbids its three-class selector; four classes does it
- * without `!important`. This is the only specificity override in the file.
- */
+/* --------------------------------------------------------------------------
+ * 2. Section boundaries — the "tied together" half
+ *
+ * One card treatment applied identically to every block, so they read as a set.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #customer_details .col-1,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout #payment,
+.beeoch-opc-active .beeoch-opc-promo {
+	border: 1px solid var( --opc-rule );
+	border-radius: var( --opc-radius );
+	background: var( --opc-surface );
+	margin-bottom: var( --opc-gap );
+}
+
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review,
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #customer_details .col-1,
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout #payment {
-	border-width: 1px;
+	padding: var( --opc-pad );
+}
+
+/* Shipping block: same treatment, but only once it actually holds fields. */
+.beeoch-opc-active #customer_details > .col-2:has( .form-row ) {
+	border: 1px solid var( --opc-rule );
+	border-radius: var( --opc-radius );
+	background: var( --opc-surface );
+	padding: var( --opc-pad );
+	margin-bottom: var( --opc-gap );
+}
+
+/* Empty shipping block contributes nothing. Never display:none — the fields appear when
+   "ship to a different address" is ticked. */
+.beeoch-opc-active #customer_details > .col-2:not( :has( .form-row ) ) {
+	margin: 0;
+	padding: 0;
+	border: 0;
 }
 
 /* --------------------------------------------------------------------------
- * 2. Layout — the only rule Elementor does not already provide
+ * 3. Section headings — consistent chrome across every block
  * ----------------------------------------------------------------------- */
 
-/* Keep the summary in view down a long billing form. */
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #customer_details .col-1 > h3,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #customer_details .col-2 > h3,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #order_review_heading,
+.beeoch-opc-active .beeoch-opc-promo__summary {
+	font-size: 1em;
+	line-height: 1.3;
+	margin: 0 0 0.7em;
+	padding: 0 0 0.55em;
+	border-bottom: 1px solid var( --opc-rule-soft );
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #order_review_heading {
+	margin-top: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 4. Compactness — the other half
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .woocommerce-checkout .form-row {
+	margin: 0 0 0.7em;
+	padding: 0;
+}
+
+.beeoch-opc-active .woocommerce-checkout .form-row label {
+	display: block;
+	margin-bottom: 0.25em;
+	font-size: 0.87em;
+	line-height: 1.3;
+	opacity: 0.85;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .form-row .input-text,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .form-row select,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .form-row textarea,
+.beeoch-opc-active .select2-container .select2-selection--single {
+	min-height: 2.5em;
+	padding: 0.55em 0.7em;
+	border-radius: 6px;
+	line-height: 1.3;
+}
+
+.beeoch-opc-active .woocommerce-checkout #order_comments {
+	min-height: 4em;
+}
+
+/* Order review table: tighter rows, clear separation, money aligned right. */
+.beeoch-opc-active .woocommerce-checkout-review-order-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95em;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table th,
+.beeoch-opc-active .woocommerce-checkout-review-order-table td {
+	padding: 0.5em 0;
+	border: 0;
+	border-bottom: 1px solid var( --opc-rule-soft );
+	vertical-align: top;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table thead th {
+	font-size: 0.75em;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	opacity: 0.55;
+	padding-bottom: 0.4em;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table .product-total,
+.beeoch-opc-active .woocommerce-checkout-review-order-table tfoot td {
+	text-align: right;
+	white-space: nowrap;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table tfoot th {
+	font-weight: 400;
+	text-align: left;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table tfoot .order-total th,
+.beeoch-opc-active .woocommerce-checkout-review-order-table tfoot .order-total td {
+	font-weight: 700;
+	font-size: 1.08em;
+	border-bottom: 0;
+	padding-top: 0.7em;
+}
+
+/* The item cell also carries plugin output — subscription lines, bundle children,
+   gift-card meta, free-gift labels — so it gets rhythm, not a new layout. */
+.beeoch-opc-active .woocommerce-checkout-review-order-table .product-name {
+	line-height: 1.4;
+	padding-right: 0.6em;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table .product-name dl.variation,
+.beeoch-opc-active .woocommerce-checkout-review-order-table .product-name small,
+.beeoch-opc-active .woocommerce-checkout-review-order-table .product-name .wcsatt-sub-options {
+	display: block;
+	margin: 0.2em 0 0;
+	font-size: 0.85em;
+	opacity: 0.7;
+}
+
+/* Payment methods: drop the stock chrome, keep the options tight. */
+.beeoch-opc-active .woocommerce-checkout #payment ul.payment_methods {
+	border: 0;
+	margin: 0;
+	padding: 0;
+}
+
+.beeoch-opc-active .woocommerce-checkout #payment ul.payment_methods li {
+	margin: 0 0 0.35em;
+	padding: 0;
+}
+
+.beeoch-opc-active .woocommerce-checkout #payment div.form-row.place-order {
+	margin: 0.9em 0 0;
+	padding: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 5. Sticky summary — the only layout rule Elementor does not provide
+ * ----------------------------------------------------------------------- */
+
 @media ( min-width: 1025px ) and ( min-height: 700px ) {
 	.beeoch-opc-active .e-checkout__column-end {
 		position: sticky;
@@ -99,19 +244,8 @@
 	}
 }
 
-/*
- * `.col-2` holds shipping and is empty whenever the store ships to the billing address
- * only. Collapse it so it contributes no space — but never `display: none`, which would
- * hide the fields the moment "ship to a different address" is ticked.
- */
-.beeoch-opc-active #customer_details > .col-2:not( :has( .form-row ) ) {
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-
 /* --------------------------------------------------------------------------
- * 3. Quantity stepper
+ * 6. Quantity stepper
  *
  * Our own markup, so plain styling. Inherits the theme's font and colour; only
  * structure is specified. Sits on its own line so it never crowds long product titles.
@@ -223,7 +357,7 @@
 }
 
 /* --------------------------------------------------------------------------
- * 4. Promotions panel
+ * 7. Promotions panel
  *
  * One labelled container holding the coupon field, Advanced Coupons box, gift-card
  * redemption and points conversion — each still rendered by its owning plugin, just
@@ -338,4 +472,1449 @@
 	--sections-padding: 0;
 	--sections-margin: 0;
 	max-width: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 8. Collapsible promotion row — store credit only, for now
+ *
+ * The approach: take each plugin's own toggle OUT of the picture rather than trying to
+ * drive it. Their header is hidden and their content forced permanently visible, so their
+ * JavaScript has nothing to act on; our <details> becomes the only thing that opens and
+ * closes.
+ *
+ * The previous attempt drove their toggles and restyled their headers, and failed four
+ * times over: Advanced Coupons and WPGens delegate to `h3`, so an injected heading
+ * double-fired theirs; ACFW shows via a CSS class where WPGens uses inline styles, so no
+ * single technique collapsed both; WPGens nests two elements matching one selector; and
+ * both bind after DOM-ready, so collapse triggers hit nothing.
+ *
+ * Note the `!important` on the forced-visible rule. It is load-bearing: a stylesheet
+ * `!important` outranks an inline style, so even if the plugin's script sets
+ * `display: none` inline, the content stays visible inside our row.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc {
+	border-top: 1px solid var( --opc-rule-soft );
+}
+
+.beeoch-opc-active .beeoch-opc-promo__item:first-child .beeoch-opc-acc {
+	border-top: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__head {
+	display: flex;
+	align-items: center;
+	gap: 0.6em;
+	position: relative;
+	margin: 0;
+	padding: 0.85em 2.4em 0.85em 1em;
+	list-style: none;
+	cursor: pointer;
+	font-weight: 600;
+	user-select: none;
+}
+
+/* Both are needed: WebKit uses the pseudo-element, others honour list-style. */
+.beeoch-opc-active .beeoch-opc-acc__head::-webkit-details-marker {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__head:hover {
+	background: rgba( 128, 128, 128, 0.06 );
+}
+
+.beeoch-opc-active .beeoch-opc-acc__head:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: -2px;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	width: 1.15em;
+	height: 1.15em;
+	opacity: 0.7;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__icon svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__title {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Chevron, drawn here so it needs no icon font or image. */
+.beeoch-opc-active .beeoch-opc-acc__head::after {
+	content: "";
+	position: absolute;
+	right: 1.1em;
+	top: 50%;
+	width: 0.42em;
+	height: 0.42em;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: translateY( -70% ) rotate( 45deg );
+	transition: transform 150ms ease;
+	opacity: 0.55;
+}
+
+.beeoch-opc-active .beeoch-opc-acc[open] .beeoch-opc-acc__head::after {
+	transform: translateY( -30% ) rotate( -135deg );
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body {
+	padding: 0 1em 1em;
+}
+
+/* -- neutralise the plugin's own accordion inside our row ------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion > h3 {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-inner {
+	display: block !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-ui-block,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordions,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-inner,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-content {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body > *:first-child,
+.beeoch-opc-active .beeoch-opc-acc__body p:first-child {
+	margin-top: 0;
+}
+
+/* Balance and instructions read as supporting text. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-store-credit-user-balance,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-store-credit-instructions {
+	margin: 0 0 0.6em;
+	font-size: 0.88em;
+	line-height: 1.4;
+	opacity: 0.85;
+}
+
+/* Input and Apply on one line. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field {
+	display: flex;
+	align-items: stretch;
+	gap: 0.5em;
+	margin: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field > p.form-row {
+	width: auto;
+	max-width: none;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	float: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field > p.form-row-first {
+	flex: 1 1 auto;
+}
+
+/* Spacer labels exist only to align the button in the plugin's own two-column layout. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-form-control-label,
+.beeoch-opc-active .beeoch-opc-acc__body label[for="coupon_code"] {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field input.input-text {
+	box-sizing: border-box;
+	width: 100%;
+	height: 2.6em;
+	min-height: 2.6em;
+	margin: 0;
+	padding: 0.5em 0.7em;
+	border-radius: 6px;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field button {
+	box-sizing: border-box;
+	width: auto;
+	height: 2.6em;
+	min-height: 2.6em;
+	margin: 0;
+	padding: 0 1.1em;
+	font-size: 0.9em;
+	line-height: 1;
+	white-space: nowrap;
+	border-radius: 6px;
+}
+
+/* --------------------------------------------------------------------------
+ * 9. Fixes to the collapsible row
+ *
+ * 1. The row would not close. `.acfw-accordion-inner` is forced visible with `!important`
+ *    so the plugin's script cannot hide it — but that also defeated the closed state of
+ *    <details> in the browser. Hiding our own wrapper when the row is shut settles it: a
+ *    display:none ancestor wins regardless of what any descendant declares.
+ *
+ * 2. The heading lost its typography. The title is now a real <h3>, so the theme styles it
+ *    exactly as it styled the plugin's original heading — only margins are reset here.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc:not( [open] ) .beeoch-opc-acc__body {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__head h3.beeoch-opc-acc__title {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+/* The summary carries the layout; weight and size come from the h3 inside it. */
+.beeoch-opc-active .beeoch-opc-acc__head {
+	font-weight: inherit;
+}
+
+/* --------------------------------------------------------------------------
+ * 10. Keep the plugin's content visible inside our row
+ *
+ * Opening the row showed nothing: the markup is all present server-side (verified), so
+ * Advanced Coupons' own script was hiding it after load. Forcing `display` on
+ * `.acfw-accordion-inner` alone was not enough.
+ *
+ * jQuery's slideUp/slideToggle animates `height`, `overflow`, `padding` and `margin` as
+ * well as ending on `display: none`, and the script may act on either the inner wrapper or
+ * the content div. Every property that animation touches is therefore pinned, on both.
+ *
+ * Blunt, but correct for this design: we have deliberately taken the plugin's toggle out of
+ * play, so its attempts to hide the content should have no effect. Our <details> decides
+ * visibility, via the `:not([open])` rule above which hides our own wrapper — and a
+ * display:none ancestor beats any `!important` on a descendant.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-inner,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-content {
+	display: block !important;
+	height: auto !important;
+	max-height: none !important;
+	min-height: 0 !important;
+	overflow: visible !important;
+	opacity: 1 !important;
+	visibility: visible !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 11. Points row — drop the inherited separator
+ *
+ * The generic `.beeoch-opc-promo__item + .beeoch-opc-promo__item` rule draws a rule and adds
+ * spacing between blocks. The store-credit row now supplies its own separator through
+ * `.beeoch-opc-acc`, so the two stack up and the points block gets a doubled line.
+ *
+ * This is transitional: once points is converted to the same <details> row, the generic
+ * separator can go entirely and every row will carry its own.
+ * ----------------------------------------------------------------------- */
+
+/*
+ * Written as `.item + .item--points`, not `.item--points`.
+ *
+ * The rule being overridden is `.beeoch-opc-active .beeoch-opc-promo__item +
+ * .beeoch-opc-promo__item`, which is three classes. A two-class override loses no matter
+ * where it sits in the file — the same specificity slip that has bitten several times in
+ * this stylesheet. Matching the shape puts both at three classes, and later wins.
+ */
+.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item--points {
+	border-top: 0;
+	margin-top: 0;
+	padding-top: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 12. Points row — same treatment as store credit
+ *
+ * WPGens nests two elements that both carry `.wpgens-accordion`
+ * (`.wpgens-points-redemption-block` wrapping `.wpgens-points-checkout-ui`), and toggles
+ * with an inline `display` plus a `show` class. Selectors below therefore address the inner
+ * parts directly rather than relying on the wrapper, and pin the same properties jQuery's
+ * slide animation touches — the reason forcing `display` alone left store credit empty.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion > h3 {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion-inner,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion-content {
+	display: block !important;
+	height: auto !important;
+	max-height: none !important;
+	min-height: 0 !important;
+	overflow: visible !important;
+	opacity: 1 !important;
+	visibility: visible !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-points-redemption-block,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion-inner,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion-content {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+}
+
+/* Balance and instructions read as supporting text, matching store credit. */
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-points-user-balance,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-points-instructions {
+	margin: 0 0 0.6em;
+	font-size: 0.88em;
+	line-height: 1.4;
+	opacity: 0.85;
+}
+
+/* Input and Apply on one line, identical to store credit. */
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field {
+	display: flex;
+	align-items: stretch;
+	gap: 0.5em;
+	margin: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field > p.form-row {
+	width: auto;
+	max-width: none;
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	float: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field > p.form-row-first {
+	flex: 1 1 auto;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-form-control-label {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field input.input-text {
+	box-sizing: border-box;
+	width: 100%;
+	height: 2.6em;
+	min-height: 2.6em;
+	margin: 0;
+	padding: 0.5em 0.7em;
+	border-radius: 6px;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field button {
+	box-sizing: border-box;
+	width: auto;
+	height: 2.6em;
+	min-height: 2.6em;
+	margin: 0;
+	padding: 0 1.1em;
+	font-size: 0.9em;
+	line-height: 1;
+	white-space: nowrap;
+	border-radius: 6px;
+}
+
+/* --------------------------------------------------------------------------
+ * 13. Make the two rows identical
+ *
+ * Three differences remained once both were wrapped:
+ *
+ * 1. Content inset. WPGens' wrappers carry their own width and margins, so its content
+ *    spanned the full row while store credit sat inside the body padding. Every wrapper is
+ *    now pinned to `width:auto; margin:0`, leaving `.beeoch-opc-acc__body` as the single
+ *    source of horizontal padding.
+ *
+ * 2. Apply button colour. Advanced Coupons uses WooCommerce's `.button.alt` and inherits the
+ *    theme. WPGens hard-codes `background-color: rgb(251,165,206)` INLINE, which no
+ *    selector can outrank without `!important`. Both are now set to the theme's own filled
+ *    button pink, #f7b8d3 — taken from the theme's stylesheet, not invented. Change it in
+ *    one place below if the brand colour moves.
+ *
+ * 3. Button height. Pinned on both so the input and button always share a line.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body > *,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-points-redemption-block,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion-inner,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-accordion-content,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-ui-block,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordions,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-inner,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-accordion-content {
+	width: auto !important;
+	max-width: none !important;
+	margin-left: 0 !important;
+	margin-right: 0 !important;
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+}
+
+/* One button treatment for both rows. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field button,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field button {
+	box-sizing: border-box !important;
+	width: auto !important;
+	height: 2.6em !important;
+	min-height: 2.6em !important;
+	margin: 0 !important;
+	padding: 0 1.15em !important;
+	border: 0 !important;
+	border-radius: 6px !important;
+	background-color: #f7b8d3 !important;
+	color: #3a3a3a !important;
+	font-size: 0.9em !important;
+	font-weight: 600 !important;
+	line-height: 1 !important;
+	white-space: nowrap !important;
+	opacity: 1;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field button:hover,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field button:hover {
+	filter: brightness( 0.95 );
+}
+
+/* And one input treatment, so both rows line up to the pixel. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field input.input-text,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field input.input-text {
+	box-sizing: border-box !important;
+	width: 100% !important;
+	height: 2.6em !important;
+	min-height: 2.6em !important;
+	margin: 0 !important;
+	padding: 0.5em 0.7em !important;
+	border-radius: 6px !important;
+	line-height: 1.3 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 14. Final alignment of the two rows
+ *
+ * 1. Button height never matched the input. Both were set to `2.6em`, but the button also
+ *    carries `font-size: 0.9em`, and `em` resolves against the element's OWN font-size — so
+ *    the button computed roughly a tenth shorter. Both are now sized in `rem`, which is
+ *    independent of local font-size, so they match whatever the theme's type scale does.
+ *
+ * 2. The points content sat flush against its header where store credit had breathing room,
+ *    because Advanced Coupons' first child brings a little spacing of its own and WPGens'
+ *    does not. A small top pad on the points body evens them up.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field input.input-text,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field input.input-text,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field button,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field button {
+	height: 2.75rem !important;
+	min-height: 2.75rem !important;
+	max-height: 2.75rem !important;
+	align-self: center;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__item--points .beeoch-opc-acc__body {
+	padding-top: 10px;
+}
+
+/* --------------------------------------------------------------------------
+ * 15. Buttons sized in rem, not em
+ *
+ * The points button rendered larger than the store-credit one. Both had the same
+ * declarations, but they were in `em`: font-size, padding and height all resolve against
+ * the inherited font-size, and the two plugins' wrapper chains do not provide the same one.
+ * Identical CSS therefore produced two different buttons.
+ *
+ * Everything that determines the button's size is now in `rem`, which ignores the local
+ * cascade — so the two are identical whatever each plugin nests them in. Same reasoning as
+ * the height fix above; this is the third time `em` has quietly caused a mismatch here, so
+ * it is worth stating as a rule: inside these rows, size in `rem`.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field button,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field button {
+	font-size: 0.9rem !important;
+	padding: 0 1.1rem !important;
+	letter-spacing: normal !important;
+	text-transform: none !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field input.input-text,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field input.input-text {
+	font-size: 0.95rem !important;
+	padding: 0.5rem 0.7rem !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 16. Button text matches the row heading, and the spacer label goes
+ *
+ * 1. Row typography is now declared once, as variables, and applied to BOTH the heading and
+ *    the Apply buttons — so they cannot drift apart the way the two buttons did. The values
+ *    are the theme's own for a checkout h3 (Montserrat, 1.2rem), not invented, so the
+ *    heading looks as it did. Tune the three variables below to change both together.
+ *
+ * 2. Advanced Coupons ships an empty `<label class="acfw-form-control-label">&nbsp;</label>`
+ *    whose only job is to align the button in its original two-column layout. Inside our
+ *    flex row it just pushes the button down. It was already being hidden, but the rule lost
+ *    to `.beeoch-opc-active .woocommerce-checkout .form-row label`, which is three classes
+ *    plus an element and therefore heavier. Hidden with `!important` rather than escalating
+ *    the selector further.
+ * ----------------------------------------------------------------------- */
+
+/*
+ * The heading is NOT styled here — deliberately.
+ *
+ * A previous revision declared font-family, size and weight on `h3.beeoch-opc-acc__title`
+ * so the buttons could share them. That changed headings which were already correct: the
+ * 1.2rem I read from the theme's stylesheet is not what actually wins for these headings,
+ * so forcing it made them wrong. The theme styles the h3; we leave it alone.
+ *
+ * The buttons therefore take the heading's FAMILY and WEIGHT — which are safe to state,
+ * being the theme's own heading font — but a size chosen for a button rather than a
+ * heading. Adjust `--opc-btn-size` alone if it wants to be larger or smaller.
+ */
+/*
+ * `inherit`, not a named font.
+ *
+ * Naming 'Montserrat' was a guess taken from one rule in the theme's stylesheet, and it was
+ * wrong — the button still read as a different face. Inheriting takes whatever the row is
+ * actually rendered in, which is correct by construction and survives any future change to
+ * the store's typography.
+ */
+.beeoch-opc-active .beeoch-opc-acc {
+	--opc-btn-size: 0.85rem;
+	--opc-btn-weight: 600;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field button,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field button {
+	font-family: inherit !important;
+	font-size: var( --opc-btn-size ) !important;
+	font-weight: var( --opc-btn-weight ) !important;
+}
+
+/* Empty spacer labels: remove them from the flex row entirely. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-form-control-label,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-form-control-label,
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field label,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field label {
+	display: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	height: 0 !important;
+}
+
+/* With the labels gone, the two halves align on the row itself. */
+.beeoch-opc-active .beeoch-opc-acc__body .acfw-checkout-form-button-field,
+.beeoch-opc-active .beeoch-opc-acc__body .wpgens-checkout-form-button-field {
+	align-items: center !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 17. Coupon row — same pattern, wrapped client-side
+ *
+ * Elementor's coupon block is gathered by JavaScript rather than rendered by us, so its
+ * <details> is built in the browser. Everything else matches the two server-side rows:
+ * its trigger is hidden, its content pinned visible so its own toggle is inert, and our row
+ * decides visibility.
+ *
+ * Its trigger is the whole "Have a coupon? Click here to enter your coupon code" paragraph.
+ * Hidden rather than removed — Elementor's script binds to the link inside it, and removing
+ * it would throw on a null reference.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body .e-woocommerce-coupon-nudge,
+.beeoch-opc-active .beeoch-opc-acc__body .e-coupon-anchor-description,
+.beeoch-opc-active .beeoch-opc-acc__body .clear {
+	display: none !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .e-coupon-anchor {
+	display: block !important;
+	height: auto !important;
+	max-height: none !important;
+	overflow: visible !important;
+	opacity: 1 !important;
+	visibility: visible !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .e-coupon-anchor > .form-row {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* Input and Apply on one line, identical to the other rows. */
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid {
+	display: flex !important;
+	align-items: center !important;
+	gap: 0.5em !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	width: auto !important;
+	max-width: none !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid > .col {
+	width: auto !important;
+	max-width: none !important;
+	min-width: 0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	float: none !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid > .coupon-col-1 {
+	flex: 1 1 auto !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid > .coupon-col-2 {
+	flex: 0 0 auto !important;
+}
+
+/* Same input and button treatment as store credit and points. */
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid input.input-text {
+	box-sizing: border-box !important;
+	width: 100% !important;
+	height: 2.75rem !important;
+	min-height: 2.75rem !important;
+	max-height: 2.75rem !important;
+	margin: 0 !important;
+	padding: 0.5rem 0.7rem !important;
+	font-size: 0.95rem !important;
+	line-height: 1.3 !important;
+	border-radius: 6px !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid button {
+	box-sizing: border-box !important;
+	width: auto !important;
+	height: 2.75rem !important;
+	min-height: 2.75rem !important;
+	max-height: 2.75rem !important;
+	margin: 0 !important;
+	padding: 0 1.1rem !important;
+	border: 0 !important;
+	border-radius: 6px !important;
+	background-color: #f7b8d3 !important;
+	color: #3a3a3a !important;
+	font-family: inherit !important;
+	font-size: var( --opc-btn-size ) !important;
+	font-weight: var( --opc-btn-weight ) !important;
+	line-height: 1 !important;
+	letter-spacing: normal !important;
+	text-transform: none !important;
+	white-space: nowrap !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body .coupon-container-grid button:hover {
+	filter: brightness( 0.95 );
+}
+
+/* The gathered wrapper itself contributes nothing now that our row is inside it. */
+.beeoch-opc-active .beeoch-opc-promo__item--gathered.e-coupon-box {
+	border: 0;
+	margin: 0;
+	padding: 0;
+	background: transparent;
+}
+
+/* --------------------------------------------------------------------------
+ * 18. Coupon row: spacing, and no visible jump before it moves
+ *
+ * The coupon block cannot be rendered into position server-side — Elementor emits it in the
+ * middle of structural markup — so JavaScript moves it after load. On a page this heavy that
+ * is a second or two, during which it was visible in its original place and then jumped.
+ *
+ * `visibility: hidden` rather than `display: none` keeps its space reserved, so nothing
+ * reflows when it appears. The rule depends on `.beeoch-opc-js`, which our script sets the
+ * moment it executes: if the script never runs, the class is absent and the coupon box shows
+ * normally. A failure degrades to "unstyled but present", never to "missing".
+ * ----------------------------------------------------------------------- */
+
+/*
+ * Not hidden while it waits.
+ *
+ * A rule here briefly hid the coupon box until JavaScript moved it, to avoid the visible
+ * jump. The delay is accepted as-is, and hiding it would trade a jump for a second of
+ * apparent absence — the worse of the two. The `.beeoch-opc-js` and `.beeoch-opc-wrapped`
+ * hooks are still set by the script, so this can be reinstated in one rule if the jump ever
+ * becomes the bigger annoyance.
+ */
+
+/* Same breathing room under the header as the points row. */
+.beeoch-opc-active .beeoch-opc-promo__item--gathered .beeoch-opc-acc__body {
+	padding-top: 10px;
+}
+
+/* --------------------------------------------------------------------------
+ * 19. Gift card row
+ *
+ * Simplest of the four in one way — it has no toggle of its own, so nothing needs rendering
+ * inert. Its `<label>Have a gift card?</label>` is the source of our row title, so it is
+ * hidden to avoid saying the same thing twice.
+ *
+ * Awkward in another: PW sets `display: block; margin-bottom: 24px; margin-top: 4px`
+ * INLINE on its submit button, which is what pushed it onto its own line. Inline styles
+ * cannot be outranked by specificity, so those three need `!important` — nothing else here
+ * does.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-acc__body label[for="pwgc-redeem-gift-card-number"] {
+	display: none !important;
+}
+
+/* The form itself becomes the input + button row. */
+.beeoch-opc-active .beeoch-opc-acc__body form[id="pwgc-redeem-form"] {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5em;
+	margin: 0;
+	padding: 0;
+	width: auto;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body input[id="pwgc-redeem-gift-card-number"] {
+	box-sizing: border-box;
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	height: 2.75rem;
+	min-height: 2.75rem;
+	max-height: 2.75rem;
+	margin: 0;
+	padding: 0.5rem 0.7rem;
+	font-size: 0.95rem;
+	line-height: 1.3;
+	border-radius: 6px;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body input[id="pwgc-redeem-button"] {
+	box-sizing: border-box;
+	flex: 0 0 auto;
+	width: auto;
+	height: 2.75rem;
+	min-height: 2.75rem;
+	max-height: 2.75rem;
+	padding: 0 1.1rem;
+	border: 0;
+	border-radius: 6px;
+	background-color: #f7b8d3;
+	color: #3a3a3a;
+	font-family: inherit;
+	font-size: var( --opc-btn-size );
+	font-weight: var( --opc-btn-weight );
+	line-height: 1;
+	letter-spacing: normal;
+	text-transform: none;
+	white-space: nowrap;
+	cursor: pointer;
+
+	/* Beats PW's inline display and margins — the only reason !important appears here. */
+	display: block !important;
+	margin: 0 !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body input[id="pwgc-redeem-button"]:hover {
+	filter: brightness( 0.95 );
+}
+
+/* The error line sits above the row, and takes no space until it has something to say. */
+.beeoch-opc-active .beeoch-opc-acc__body [id="pwgc-redeem-error"] {
+	flex: 0 0 100%;
+	order: -1;
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.4;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body [id="pwgc-redeem-error"]:empty {
+	display: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 20. PW Gift Cards: outrank its ID rules
+ *
+ * Three of PW's own declarations were still winning — the button's top margin, and the
+ * wrapper's 14px margin/padding and top border.
+ *
+ * The reason is specificity class, not `!important`. PW targets `#pwgc-redeem-button` and
+ * `#pwgc-redeem-gift-card-form` by ID, and a single ID outranks any number of classes, so
+ * our `.class .class input[id="..."]` selectors lost even with `!important` on both sides —
+ * `!important` only decides between declarations of equal weight.
+ *
+ * These rules use the same IDs plus our scoping classes, which puts us ahead.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-promo__body #pwgc-redeem-gift-card-form {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	border-top: 0 !important;
+	background: transparent !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body #pwgc-redeem-button {
+	margin: 0 !important;
+	margin-top: 0 !important;
+	margin-bottom: 0 !important;
+	align-self: center !important;
+}
+
+.beeoch-opc-active .beeoch-opc-acc__body #pwgc-redeem-form {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 21. Reorder (properly this time), and let the promotions run full width
+ *
+ * The reorder in §18 did nothing. `.beeoch-opc-active .e-checkout__order_review` is two
+ * classes; Elementor styles that same element with three
+ * (`.elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review`), so
+ * our `display: flex` never applied — and without a flex container, `order` is inert. Third
+ * time this exact trap has appeared in this file; the selectors below are four classes deep.
+ *
+ * The panel also loses its card: no border, no background, no padding, so the rows extend to
+ * the full width of the column and read as part of the summary rather than a box inside it.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review {
+	display: flex;
+	flex-direction: column;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > #order_review_heading {
+	order: 0;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > #order_review {
+	order: 1;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-promo {
+	order: 2;
+	margin-top: var( --opc-gap );
+	margin-bottom: 0;
+}
+
+/* No card around the promotions — the rows are the whole of it. */
+.beeoch-opc-active .beeoch-opc-promo,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .beeoch-opc-promo {
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	padding: 0;
+	overflow: visible;
+}
+
+.beeoch-opc-active .beeoch-opc-promo__body {
+	padding: 0;
+	margin: 0;
+}
+
+/* With the card gone, a rule above the first row keeps it from floating loose. */
+.beeoch-opc-active .beeoch-opc-promo__body > .beeoch-opc-promo__item:first-child {
+	border-top: 1px solid var( --opc-rule-soft );
+}
+
+/* --------------------------------------------------------------------------
+ * 22. Cart line: column widths, and a smaller round control set
+ *
+ * The product name was being squeezed and wrapping onto several lines because the totals
+ * column claimed a share of the table width. `width: 1%` plus `white-space: nowrap` is the
+ * standard way to shrink a column to its content — the browser treats 1% as "as narrow as
+ * the content allows", handing every remaining pixel to the name.
+ *
+ * The stepper was also too tall and boxy for a summary line. It loses its outer frame; the
+ * plus, minus and remove controls become small circles, and the whole set sits on one
+ * compact row. Sized in `rem` throughout — the reason the earlier buttons mismatched.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table .product-name {
+	width: auto;
+	padding-right: 0.75rem;
+}
+
+.beeoch-opc-active .woocommerce-checkout-review-order-table thead th.product-total,
+.beeoch-opc-active .woocommerce-checkout-review-order-table td.product-total {
+	width: 1%;
+	white-space: nowrap;
+}
+
+/* -- the control set -------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	margin-top: 0.4rem;
+	border: 0;
+	border-radius: 0;
+	overflow: visible;
+	font-size: 1rem;
+	line-height: 1;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step,
+.beeoch-opc-active .beeoch-opc-qty__remove {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 1.6rem;
+	height: 1.6rem;
+	min-width: 0;
+	min-height: 0;
+	padding: 0;
+	margin: 0;
+	border: 1px solid var( --opc-rule );
+	border-radius: 50%;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 0.95rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step:hover,
+.beeoch-opc-active .beeoch-opc-qty__remove:hover {
+	background: rgba( 128, 128, 128, 0.12 );
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step:focus-visible,
+.beeoch-opc-active .beeoch-opc-qty__remove:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 1px;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step[disabled] {
+	opacity: 0.35;
+	cursor: default;
+}
+
+/* The remove control is separated slightly so it cannot be mistaken for "minus". */
+.beeoch-opc-active .beeoch-opc-qty__remove {
+	margin-left: 0.35rem;
+	opacity: 0.65;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__remove:hover {
+	opacity: 1;
+	border-color: currentColor;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__remove svg {
+	width: 0.7rem;
+	height: 0.7rem;
+	display: block;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__input {
+	box-sizing: border-box;
+	width: 2.2rem;
+	min-height: 0;
+	height: 1.6rem;
+	margin: 0;
+	padding: 0 0.15rem;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 0.95rem;
+	line-height: 1;
+	text-align: center;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__input:focus {
+	outline: 2px solid currentColor;
+	outline-offset: 1px;
+	border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+ * 23. Billing block sits flush with the top of its column
+ *
+ * `#customer_details .col-1` carries a top margin of its own, which pushed the billing card
+ * below the order summary opposite it. Four classes to outrank Elementor's own rule on the
+ * same element.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce #customer_details .col-1 {
+	margin-top: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 24. Give the order summary a wider column
+ *
+ * The product name was cramped not because the table divided badly, but because the whole
+ * summary column is narrow: Elementor's grid is `56% auto`, so the summary gets roughly 44%
+ * of the width and the name column only part of that.
+ *
+ * Rebalanced to 50/50. Elementor's own declaration is on `.e-checkout__container` inside its
+ * widget stylesheet, so this is stated at four classes to outrank it, and only the column
+ * template is changed — the gaps and collapse behaviour on narrow screens are left alone.
+ *
+ * `--opc-columns` is the single tuning point: `1fr 1fr` is even, `1.2fr 1fr` favours the
+ * form, `1fr 1.2fr` favours the summary.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active {
+	--opc-columns: 1fr 1fr;
+}
+
+@media ( min-width: 1025px ) {
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__container,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .e-checkout__container {
+		grid-template-columns: var( --opc-columns );
+	}
+}
+
+/* With more room available, keep the totals column tight so the name takes the surplus. */
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table th.product-total,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table td.product-total {
+	width: 1%;
+	white-space: nowrap;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table th.product-name,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table td.product-name {
+	width: auto;
+}
+
+/* --------------------------------------------------------------------------
+ * 25. Continuous row rules, and a primary-coloured control set
+ *
+ * The line separators broke at the column boundary because `border-collapse: collapse` was
+ * declared at two classes and lost — the table stayed `separate`, so each cell drew its own
+ * border with spacing between them. Restated at four classes with `border-spacing: 0`.
+ *
+ * Plus and minus now carry the store's primary button colour, so editing the cart reads as an
+ * action rather than as chrome. Remove stays neutral until hovered: it is the destructive
+ * control and should not compete for attention with the everyday ones.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active {
+	/* Same pink the Apply buttons use — change both from here. */
+	--opc-primary: #f7b8d3;
+	--opc-primary-ink: #3a3a3a;
+	--opc-danger: #c0392b;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table th,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table td {
+	border-top: 0;
+	border-left: 0;
+	border-right: 0;
+	border-bottom: 1px solid var( --opc-rule-soft );
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table tfoot .order-total th,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table tfoot .order-total td {
+	border-bottom: 0;
+}
+
+/* -- plus / minus ---------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty__step {
+	border: 0;
+	background: var( --opc-primary );
+	color: var( --opc-primary-ink );
+	font-weight: 700;
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.08 );
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step:hover {
+	filter: brightness( 0.93 );
+	transform: translateY( -1px );
+	box-shadow: 0 2px 5px rgba( 0, 0, 0, 0.15 );
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step:active {
+	transform: translateY( 0 );
+	filter: brightness( 0.88 );
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.1 );
+}
+
+.beeoch-opc-active .beeoch-opc-qty__step[disabled] {
+	background: rgba( 128, 128, 128, 0.18 );
+	color: inherit;
+	opacity: 0.55;
+	box-shadow: none;
+	transform: none;
+	filter: none;
+	cursor: default;
+}
+
+/* -- remove ---------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty__remove {
+	border: 1px solid var( --opc-rule );
+	background: transparent;
+	color: inherit;
+	opacity: 0.5;
+	box-shadow: none;
+}
+
+.beeoch-opc-active .beeoch-opc-qty__remove:hover {
+	opacity: 1;
+	border-color: var( --opc-danger );
+	color: var( --opc-danger );
+	background: rgba( 192, 57, 43, 0.08 );
+}
+
+.beeoch-opc-active .beeoch-opc-qty__remove:active {
+	background: rgba( 192, 57, 43, 0.16 );
+}
+
+.beeoch-opc-active .beeoch-opc-qty__remove:focus-visible {
+	opacity: 1;
+	outline: 2px solid var( --opc-danger );
+	outline-offset: 1px;
+}
+
+/* Motion is a nicety; respect anyone who has asked for less of it. */
+@media ( prefers-reduced-motion: reduce ) {
+	.beeoch-opc-active .beeoch-opc-qty__step,
+	.beeoch-opc-active .beeoch-opc-qty__remove {
+		transition: none;
+	}
+
+	.beeoch-opc-active .beeoch-opc-qty__step:hover,
+	.beeoch-opc-active .beeoch-opc-qty__step:active {
+		transform: none;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 26. Settle the row rule and the column split
+ *
+ * Two rounds of specificity-matched rules did not fix either problem, and I could not
+ * identify which declaration was still winning from the stylesheets alone. Rather than keep
+ * guessing, both are stated with `!important` and the table is given an explicit layout:
+ *
+ * - `border-collapse: collapse` merges adjacent cell borders into one continuous rule, so no
+ *   spacing can appear at the column boundary whatever else is declared.
+ * - `table-layout: fixed` plus explicit column widths makes the split deterministic. With
+ *   `auto` layout the browser sizes columns from content, and a long product title competes
+ *   with the price for room — which is why the name kept wrapping no matter what the totals
+ *   column was told to do.
+ *
+ * 78/22 is the split; `--opc-name-col` is the tuning point.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active {
+	--opc-name-col: 78%;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table {
+	table-layout: fixed !important;
+	width: 100% !important;
+	border-collapse: collapse !important;
+	border-spacing: 0 !important;
+	border: 0 !important;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-name,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name {
+	width: var( --opc-name-col ) !important;
+	white-space: normal !important;
+	overflow-wrap: break-word;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-total,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-total {
+	width: auto !important;
+	white-space: nowrap !important;
+}
+
+/* One continuous rule per row, drawn by the cells that now sit flush together. */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table th,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td {
+	border: 0 !important;
+	border-bottom: 1px solid var( --opc-rule-soft ) !important;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr:last-child th,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr:last-child td {
+	border-bottom: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 27. Variation list: the cause of both the stacked name and the broken rule
+ *
+ * The product cell contains WooCommerce's `<dl class="variation">`, whose `dt`/`dd` are
+ * FLOATED by WooCommerce's own stylesheet. Two consequences, which turned out to be the two
+ * complaints:
+ *
+ * 1. Uncleared floats do not contribute to their parent's height, so the cell's border-bottom
+ *    was drawn ABOVE the variation text — reading as a rule that stops halfway. No amount of
+ *    border-collapse or specificity work could have fixed that; the border was in the wrong
+ *    place, not missing.
+ *
+ * 2. Each floated dt/dd starts its own line, so "Choose Your Shade: … Size: …" stacked down
+ *    the cell and made the name look cramped however wide the column was.
+ *
+ * Unfloating the list and running it inline fixes both at once: the cell measures correctly,
+ * so the rule sits at the bottom, and the attributes read as one compact line under the title.
+ * `display: flow-root` on the cell is belt and braces for any other float a plugin adds.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name {
+	display: table-cell;
+}
+
+.beeoch-opc-active td.product-name dl.variation {
+	display: block;
+	overflow: hidden;
+	margin: 0.3rem 0 0;
+	padding: 0;
+	font-size: 0.82rem;
+	line-height: 1.45;
+	opacity: 0.75;
+}
+
+.beeoch-opc-active td.product-name dl.variation dt,
+.beeoch-opc-active td.product-name dl.variation dd {
+	display: inline !important;
+	float: none !important;
+	clear: none !important;
+	width: auto !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	font-size: inherit;
+	line-height: inherit;
+}
+
+.beeoch-opc-active td.product-name dl.variation dt {
+	font-weight: 600;
+}
+
+.beeoch-opc-active td.product-name dl.variation dd p {
+	display: inline !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* Separate one attribute from the next without adding markup. */
+.beeoch-opc-active td.product-name dl.variation dd + dt::before {
+	content: " · ";
+	opacity: 0.6;
+}
+
+/* Any other floated content a plugin drops in the cell is contained too. */
+.beeoch-opc-active td.product-name::after {
+	content: "";
+	display: block;
+	clear: both;
+}
+
+/* --------------------------------------------------------------------------
+ * 28. Payment panel margin
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout #payment,
+.beeoch-opc-active #payment {
+	margin: 0;
+}
+
+.beeoch-opc-active .e-checkout__order_review-2 {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 29. Release Elementor's 150px cap on the product cell
+ *
+ * Found by inspecting computed styles. Elementor's widget stylesheet contains:
+ *
+ *   .elementor-widget-woocommerce-checkout-page .woocommerce
+ *     .woocommerce-checkout-review-order-table .cart_item td.product-name {
+ *       max-width: 150px;
+ *       padding-inline-end: 40px;
+ *   }
+ *
+ * `max-width` caps the box regardless of any `width` we declare, so every earlier attempt to
+ * widen this column was applied and then overruled. The 40px inline-end padding took a
+ * further bite out of what little was left, which is what forced the title to wrap and the
+ * variation list to stack.
+ *
+ * Matched at five classes so it wins outright; `!important` as belt and braces given how
+ * many rounds this took to find.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table .cart_item td.product-name,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-name,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name {
+	max-width: none !important;
+	width: var( --opc-name-col ) !important;
+	padding-inline-end: 0.75rem !important;
+	padding-right: 0.75rem !important;
+}
+
+/* The totals column keeps only what it needs, so the surplus goes to the name. */
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-total,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total {
+	max-width: none !important;
+	width: auto !important;
+	white-space: nowrap !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 30. Separator on the row, not the cells
+ *
+ * A gap between the two cells can only happen when each draws its own border and the table
+ * is in `separate` mode — collapsed cells share an edge. Moving the rule to the `<tr>` makes
+ * that impossible: one border across one element, with nothing in the middle to break.
+ *
+ * Note this only paints when `border-collapse: collapse` is in effect — the spec has user
+ * agents ignore row borders in `separate` mode — so collapse is forced alongside it. If the
+ * separators disappear entirely rather than becoming continuous, that is itself the answer:
+ * collapse is being overridden by something we have not found, and the fallback below (an
+ * inset shadow on the cells, which is immune to border-collapse) will still draw them.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table {
+	border-collapse: collapse !important;
+	border-spacing: 0 !important;
+}
+
+/* Cells stop drawing their own rules. */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table th,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td {
+	border: 0 !important;
+}
+
+/* The row draws one continuous rule. */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table thead tr,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr {
+	border-bottom: 1px solid var( --opc-rule-soft ) !important;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr:last-child {
+	border-bottom: 0 !important;
+}
+
+/*
+ * Fallback, immune to border-collapse: an inset shadow along the bottom of each cell. In
+ * collapsed mode it sits exactly under the row border and is invisible; in separate mode it
+ * draws the line the row border cannot. Either way the customer sees one rule.
+ */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr td {
+	box-shadow: inset 0 -1px 0 0 var( --opc-rule-soft );
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr:last-child td,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr:last-child th {
+	box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 31. Draw the separator once, on the row
+ *
+ * Confirmed by inspection: the visible line was the per-cell fallback shadow from §28, and
+ * the `<tr>` border was not painting — which means the table is in `separate` mode despite
+ * `border-collapse: collapse !important`, and row borders are ignored there.
+ *
+ * A per-cell shadow can only ever be as continuous as the cells are adjacent, so it breaks
+ * wherever the table puts space between them. Moving the shadow to the ROW draws it once,
+ * across the whole row box, independent of how the cells are spaced or how many there are.
+ *
+ * `box-shadow` rather than `border` because a row border is what `separate` mode ignores;
+ * shadows are painted regardless of border-collapse.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr td,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr th {
+	box-shadow: none !important;
+}
+
+/*
+ * No row separator is drawn by us.
+ *
+ * The row-level shadow that sat here was removed at the owner's request. Combined with the
+ * `box-shadow: none` on cells above, this plugin now draws no rules inside the review table
+ * at all — whatever separation the theme and WooCommerce provide is left to stand.
+ */
+
+/* --------------------------------------------------------------------------
+ * 32. Hide Side Cart's "View cart" button
+ *
+ * The slide-out cart offers a button through to /cart/. On a checkout that is becoming the
+ * only cart surface that is a route back out of the funnel, so it is hidden here.
+ *
+ * Hidden only while the flag is on and only on checkout — the button still works everywhere
+ * else, and nothing about Side Cart's own behaviour is altered. When /cart/ is retired for
+ * real (build order §10) this becomes redundant, because the link will redirect anyway.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .xoo-wsc-ft-btn.xoo-wsc-btn.xoo-wsc-ft-btn-cart,
+.beeoch-opc-active a.xoo-wsc-ft-btn-cart,
+.beeoch-opc-active .xoo-wsc-ft-btn-cart {
+	display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 33. Recurring totals must be allowed to wrap
+ *
+ * `white-space: nowrap` on the totals column keeps a price like "$24.00" on one line, which
+ * is right for a simple line item. WooCommerce Subscriptions puts far more in that cell:
+ *
+ *   <td data-title="Recurring total"><strong>$18.40</strong> / month
+ *     <div class="first-payment-date"><small>First renewal: September 13, 2026</small></div></td>
+ *
+ * With nowrap that cannot break, so it runs straight out of the summary panel. Wrapping is
+ * re-enabled for footer cells and for any cell carrying a renewal date, while simple line
+ * item prices keep nowrap so they never break mid-figure.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot td,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot th,
+.beeoch-opc-active td[data-title="Recurring total"],
+.beeoch-opc-active td:has( .first-payment-date ) {
+	white-space: normal !important;
+	overflow-wrap: anywhere;
+	word-break: normal;
+}
+
+/* The renewal date reads as a secondary line under the amount, not a continuation of it. */
+.beeoch-opc-active .first-payment-date {
+	display: block;
+	margin-top: 0.2rem;
+	white-space: normal;
+	line-height: 1.35;
+	opacity: 0.75;
+}
+
+/* Nothing in the summary may push the panel wider than its column. */
+.beeoch-opc-active .e-checkout__order_review,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table {
+	max-width: 100%;
+	overflow-wrap: anywhere;
 }

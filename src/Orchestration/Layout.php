@@ -48,7 +48,17 @@ class Layout {
 		( new QuantityControl( $this->policy ) )->register();
 		( new Promotions() )->register();
 		( new MutationHandler( new Mutations( $this->policy ) ) )->register();
+		( new CartRedirect() )->register();
 
+		/*
+		 * Priority 20, printed in the head as normal.
+		 *
+		 * A previous revision moved this to the footer on the theory that the WOOF products
+		 * filter's later stylesheets were overriding ours. That theory was wrong — those
+		 * sheets contain no rule matching the review table, the product cell or the variation
+		 * list. Reverted rather than left in place, since a footer stylesheet is worse for
+		 * rendering and was justified by a diagnosis that did not hold.
+		 */
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue' ), 20 );
 		add_action( 'woocommerce_checkout_before_order_review', array( $this, 'carrier_fields' ) );
 		add_filter( 'body_class', array( $this, 'body_class' ) );
