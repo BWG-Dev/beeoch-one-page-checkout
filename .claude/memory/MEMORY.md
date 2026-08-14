@@ -1,0 +1,6 @@
+- [OPC plugin state](opc-plugin-state.md) — deployed to staging 2026-08-13 at v1.23.1; what works, what is still untested, and the local state to resume from.
+- [OPC hard-won gotchas](opc-hard-won-gotchas.md) — silent-failure traps in this codebase: the `%%endpoint%%` encoding bug, CSS precedence order, floats that look like border bugs.
+- [Checkout redesign goal](checkout-redesign-goal.md) — the ask is a modern, intuitive checkout; CSS-only failed because the problem was arrangement, not appearance.
+- [User runs UI tests](user-runs-ui-tests.md) — build and verify server-side, then hand over a numbered browser test script; don't drive the UI.
+- [Discuss expensive operations first](discuss-expensive-operations-first.md) — flag token-heavy scans before running them; never read uploads/ or WP core.
+- [Local stack & WP-CLI gotchas](local-stack-and-cli-gotchas.md) — MariaDB is on port 3307, and Git Bash silently mangles `/`-leading args into no-op WP-CLI commands.

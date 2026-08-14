@@ -1,0 +1,29 @@
+* text=auto eol=lf
+
+# The deploy target is Linux. Normalising to LF in the repository keeps the checkout on the
+# server byte-identical to the checkout here, so a CRLF-only difference can never show up as a
+# spurious change in a deploy diff — or, worse, as a file the pipeline decides to re-transfer
+# on every run.
+
+*.php   text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.txt   text eol=lf
+
+# Binary — never touched, never diffed.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.svg   text eol=lf
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.eot   binary
+*.zip   binary
+*.gz    binary

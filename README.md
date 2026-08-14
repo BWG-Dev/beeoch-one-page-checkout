@@ -47,15 +47,21 @@ users with `edit_shop_orders`/`manage_options` and `?beeoch_new=1`, for side-by-
 ## Documentation
 
 The design, the compatibility audit it is built on, and the reasoning behind each decision live in
-the project's `docs/` folder, outside this repository:
+[`docs/`](docs/). They are versioned with the plugin and excluded from deployment — see
+[`DEPLOY.md`](DEPLOY.md).
 
+- `PROJECT.md` — phases, scope and what is deliberately out of it
 - `PLUGIN-ARCHITECTURE.md` — structure, invariants, build order, accepted trade-offs
 - `CHECKOUT-COMPATIBILITY.md` — per-plugin audit and findings
 - `CHECKOUT-HOOK-MAP.md` — what actually runs on a checkout request, captured at runtime
 - `TEST-MATRIX.md` — acceptance testing
+- `LOCAL-SETUP.md`, `MIGRATION-CHECKLIST.md` — standing up a local copy of staging
+- `LOCAL-SAFETY.md` — how a production-derived database is stopped from reaching the outside
+  world. Read before booting this site locally.
 
 ## Status
 
-Cart editing, removal and the promotions panel are working and confirmed in a browser. Not yet
-exercised: last-item removal, Product Bundles, Subscriptions, and a completed test order.
-Outstanding work is tracked as milestones 6, 7 and 10 in `PLUGIN-ARCHITECTURE.md` §14.
+Cart editing, removal, the promotions panel and the `/cart/` → checkout redirect are working and
+confirmed in a browser on staging. Not yet exercised: last-item removal, Product Bundles,
+Subscriptions, and a completed test order. Outstanding work is tracked as milestones 6 and 7 in
+`PLUGIN-ARCHITECTURE.md` §14.
