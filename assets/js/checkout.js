@@ -253,7 +253,10 @@
 	 * copy was left sitting in its default position — the customer saw the form twice.
 	 * '[id="..."]' goes through querySelectorAll and returns both.
 	 */
-	var GATHER = [ '.e-coupon-box', '[id="pwgc-redeem-gift-card-form"]' ];
+	var GATHER = [
+		{ selector: '.e-coupon-box', slot: 'coupon' },
+		{ selector: '[id="pwgc-redeem-gift-card-form"]', slot: 'gift-card' }
+	];
 
 	/**
 	 * Rows we build client-side, because these blocks arrive by DOM move rather than being
@@ -355,9 +358,14 @@
 			return;
 		}
 
-		$.each( GATHER, function ( _, selector ) {
-			var $inPanel = $body.find( selector );
-			var $fresh = $( selector ).not( $inPanel );
+		$.each( GATHER, function ( _, spec ) {
+			var $slot = $body.find( '[data-beeoch-slot="' + spec.slot + '"]' );
+			var $target = $slot.length ? $slot.find( '.beeoch-opc-acc__body' ).first() : $body;
+			var $inPanel = $body.find( spec.selector );
+			var $fresh = $( spec.selector ).not( $inPanel ).filter( function () {
+				// An empty wrapper is not the block — Elementor emits `.e-coupon-box` either way.
+				return $( this ).children().length > 0;
+			} );
 
 			if ( ! $fresh.length ) {
 				return;
@@ -375,8 +383,31 @@
 			$fresh
 				.first()
 				.addClass( 'beeoch-opc-promo__item beeoch-opc-promo__item--gathered' )
-				.appendTo( $body );
+				.appendTo( $target );
+
+			if ( $slot.length ) {
+				/*
+				 * The row already exists, so wrapRows() must not build a second one around
+				 * the same block. Marking it wrapped here is what keeps the two paths from
+				 * fighting: server-rendered row + moved content, or client-built row — never
+				 * both for one block.
+				 */
+				$fresh.first().data( 'beeochWrapped', true ).addClass( 'beeoch-opc-wrapped' );
+				$slot.find( '.beeoch-opc-acc' ).removeClass( 'beeoch-opc-acc--pending' );
+			}
 		} );
+
+		/*
+		 * Any slot still pending has nothing to receive — the plugin is inactive, or the
+		 * customer is not eligible — so the reserved row is removed rather than left as a
+		 * header that opens onto nothing.
+		 */
+		$body.find( '.beeoch-opc-acc--pending' ).closest( '[data-beeoch-slot]' ).remove();
+
+		// A panel holding nothing but removed slots is a heading with no content.
+		if ( ! $body.children().length ) {
+			$body.closest( '.beeoch-opc-promo' ).remove();
+		}
 	}
 
 	/**

@@ -47,9 +47,60 @@ class CartRedirect {
 	 * @param string $url Cart URL.
 	 */
 	public function cart_url( $url ): string {
+		if ( ! $this->checkout_is_reachable() ) {
+			return (string) $url;
+		}
+
 		$checkout = wc_get_checkout_url();
 
 		return $checkout ? $checkout : (string) $url;
+	}
+
+	/**
+	 * Whether the configured checkout page actually exists and is published.
+	 *
+	 * Learned on staging: WooCommerce's Checkout page setting still pointed at a retired
+	 * CartFlows step (`#160020`). `wc_get_checkout_url()` happily returned that post, whose
+	 * permalink had collapsed to `?p=160020` and 404'd — so every customer clicking through
+	 * to the cart was redirected into a dead page.
+	 *
+	 * A misconfigured setting is not something this plugin can fix, but it must not amplify
+	 * it. When the target is unreachable both the URL filter and the redirect stand down, and
+	 * the cart page keeps working exactly as it did before.
+	 */
+	private function checkout_is_reachable(): bool {
+		static $reachable = null;
+
+		if ( null !== $reachable ) {
+			return $reachable;
+		}
+
+		$page_id = function_exists( 'wc_get_page_id' ) ? wc_get_page_id( 'checkout' ) : 0;
+
+		if ( $page_id <= 0 ) {
+			$reachable = false;
+
+			return false;
+		}
+
+		$page = get_post( $page_id );
+
+		$reachable = ( $page instanceof \WP_Post )
+			&& 'publish' === $page->post_status
+			&& 'page' === $page->post_type;
+
+		if ( ! $reachable && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log(
+				sprintf(
+					'BEEOCH-OPC [cart-redirect] standing down: checkout page #%d is %s. Set WooCommerce > Settings > Advanced > Checkout page to a published page.',
+					$page_id,
+					$page instanceof \WP_Post ? $page->post_type . '/' . $page->post_status : 'missing'
+				)
+			);
+		}
+
+		return $reachable;
 	}
 
 	/**
@@ -72,6 +123,11 @@ class CartRedirect {
 	 */
 	private function should_redirect(): bool {
 		if ( ! function_exists( 'is_cart' ) || ! is_cart() ) {
+			return false;
+		}
+
+		// Never redirect into a checkout page that does not resolve — see checkout_is_reachable().
+		if ( ! $this->checkout_is_reachable() ) {
 			return false;
 		}
 

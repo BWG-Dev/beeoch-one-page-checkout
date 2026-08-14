@@ -1918,3 +1918,89 @@
 	max-width: 100%;
 	overflow-wrap: anywhere;
 }
+
+/* --------------------------------------------------------------------------
+ * 34. Astra turns the product cell into a centred flex column
+ *
+ * Astra's WooCommerce stylesheet contains, on staging:
+ *
+ *   .woocommerce-page.woocommerce-checkout form #order_review td.product-name,
+ *   .woocommerce.woocommerce-checkout form #order_review td.product-name {
+ *       display: flex; align-items: center; flex-wrap: wrap;
+ *       gap: .3em; flex-direction: column;
+ *   }
+ *
+ * With `flex-direction: column`, `align-items: center` becomes HORIZONTAL centring — so the
+ * quantity stepper and remove button sat centred under the product title instead of aligning
+ * to its left edge.
+ *
+ * §27 already declares `display: table-cell` here and was simply losing: Astra's selector
+ * carries an ID (`#order_review`), and no number of classes beats an ID. `!important` does
+ * beat it, because Astra's declarations are not themselves important — that is the one thing
+ * `!important` is genuinely for, as opposed to the specificity ties it cannot break.
+ *
+ * The flex properties are restated alongside `display` so that if anything forces this cell
+ * back into a flex context, it is at least a top-left flex context.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name,
+.beeoch-opc-active #order_review td.product-name,
+.beeoch-opc-active form #order_review td.product-name {
+	display: table-cell !important;
+	flex-direction: column !important;
+	align-items: flex-start !important;
+	justify-content: flex-start !important;
+	text-align: left !important;
+	gap: 0 !important;
+}
+
+/* Everything inside the cell starts at the left edge, whatever the cell's display becomes. */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name > * {
+	text-align: left !important;
+	margin-inline-start: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 35. The gathered wrappers contribute no spacing of their own
+ *
+ * `.e-coupon-box` is an Elementor layout box with its own margin, and once it is inside a
+ * promotion row that margin is pure dead space — enough of it to push the panel down and
+ * introduce a scroll. §17 zeroed it already but without `!important`, so Elementor's own
+ * widget-scoped rule (three classes, same as ours) won on source order.
+ *
+ * Applied to the gathered wrapper in every form it takes: moved into a reserved slot, moved
+ * into the panel body, or wrapped client-side.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-promo .e-coupon-box,
+.beeoch-opc-active .beeoch-opc-promo__item--gathered,
+.beeoch-opc-active .beeoch-opc-promo__body .beeoch-opc-wrapped,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .beeoch-opc-promo .e-coupon-box {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 36. Reserved slots
+ *
+ * A slot is a complete promotion row whose body is empty until JavaScript moves the plugin's
+ * markup into it (Promotions::render_slot). It exists so the panel is the right height, in
+ * the right order, on first paint — the rows no longer arrive late and reshuffle.
+ *
+ * Nothing here makes a pending row look different: a slot that reads as "loading" would be
+ * more distracting than the row it replaces, and it is only ever pending for the moment
+ * between first paint and our script running.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active [data-beeoch-slot] > .beeoch-opc-acc {
+	margin: 0;
+}
+
+/* An empty body must not add height while the row waits to be filled. */
+.beeoch-opc-active .beeoch-opc-acc--pending > .beeoch-opc-acc__body:empty {
+	padding: 0;
+	min-height: 0;
+}
