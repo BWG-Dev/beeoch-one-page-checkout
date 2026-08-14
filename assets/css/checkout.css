@@ -1920,53 +1920,42 @@
 }
 
 /* --------------------------------------------------------------------------
- * 34. Astra turns the product cell into a centred flex column
+ * 34. Our controls align left whatever the cell's display is
  *
- * Astra's WooCommerce stylesheet contains, on staging:
+ * The centred quantity stepper on staging came from Custom CSS on the Elementor checkout
+ * component — Astra's own selector copied in with a declaration added:
  *
- *   .woocommerce-page.woocommerce-checkout form #order_review td.product-name,
- *   .woocommerce.woocommerce-checkout form #order_review td.product-name {
- *       display: flex; align-items: center; flex-wrap: wrap;
- *       gap: .3em; flex-direction: column;
- *   }
+ *   .woocommerce-page.woocommerce-checkout form #order_review td.product-name { … }
+ *       display: flex; align-items: center; flex-direction: column;
  *
- * With `flex-direction: column`, `align-items: center` becomes HORIZONTAL centring — so the
- * quantity stepper and remove button sat centred under the product title instead of aligning
- * to its left edge.
+ * In a COLUMN flex container `align-items: center` centres horizontally, which is what pushed
+ * the stepper and remove button off the left edge. That rule is editable in Elementor and
+ * should be removed at source; this section is only a guard in case it stays or returns.
  *
- * §27 already declares `display: table-cell` here and was simply losing: Astra's selector
- * carries an ID (`#order_review`), and no number of classes beats an ID. `!important` does
- * beat it, because Astra's declarations are not themselves important — that is the one thing
- * `!important` is genuinely for, as opposed to the specificity ties it cannot break.
- *
- * The flex properties are restated alongside `display` so that if anything forces this cell
- * back into a flex context, it is at least a top-left flex context.
+ * Deliberately NOT `display: table-cell !important` on the cell. That would win — the rule is
+ * not itself important, and `!important` beats an ID selector even though extra classes
+ * cannot — but it would also stop anyone restyling this cell from the page, which is a poor
+ * trade for a plugin to force. Aligning our own injected elements is enough, costs nothing if
+ * the cell is a normal table cell, and leaves the cell itself to whoever is styling the page.
  * ----------------------------------------------------------------------- */
 
-.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name,
-.beeoch-opc-active #order_review td.product-name,
-.beeoch-opc-active form #order_review td.product-name {
-	display: table-cell !important;
-	flex-direction: column !important;
-	align-items: flex-start !important;
-	justify-content: flex-start !important;
-	text-align: left !important;
-	gap: 0 !important;
-}
-
-/* Everything inside the cell starts at the left edge, whatever the cell's display becomes. */
-.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name > * {
-	text-align: left !important;
-	margin-inline-start: 0 !important;
+.beeoch-opc-active td.product-name .beeoch-opc-qty,
+.beeoch-opc-active td.product-name .beeoch-opc-remove {
+	align-self: flex-start;
+	margin-inline-start: 0;
 }
 
 /* --------------------------------------------------------------------------
  * 35. The gathered wrappers contribute no spacing of their own
  *
- * `.e-coupon-box` is an Elementor layout box with its own margin, and once it is inside a
- * promotion row that margin is pure dead space — enough of it to push the panel down and
- * introduce a scroll. §17 zeroed it already but without `!important`, so Elementor's own
- * widget-scoped rule (three classes, same as ours) won on source order.
+ * `.e-coupon-box` is an Elementor layout box carrying its own margin, and once it has been
+ * moved inside a promotion row that margin is pure dead space — enough of it to push the
+ * panel down and introduce a scroll. §17 zeroed it already but without `!important`, so it
+ * lost on source order.
+ *
+ * `!important` is comfortable here in a way it was not in §34: every selector below is scoped
+ * inside `.beeoch-opc-promo`, so this only governs elements we have taken into our own panel.
+ * It does not constrain how the same box is styled anywhere else on the page.
  *
  * Applied to the gathered wrapper in every form it takes: moved into a reserved slot, moved
  * into the panel body, or wrapped client-side.
