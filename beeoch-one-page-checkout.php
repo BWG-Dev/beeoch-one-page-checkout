@@ -5,7 +5,7 @@
  * Version:           1.25.1
  * Requires PHP:      8.1
  * Requires at least: 6.5
- * Author:            Bee-Och Organics
+ * Author:            Web Bennet Group
  * Text Domain:       beeoch-opc
  *
  * @package Beeoch\OPC
