@@ -380,9 +380,19 @@
 			$inPanel.remove();
 			$fresh.slice( 1 ).remove();
 
+			/*
+			 * `beeoch-opc-promo__item` marks a ROW of the panel. A block moved into a slot is
+			 * not a row — the slot is — so it takes only the `--gathered` marker, which is what
+			 * the flattening rules key on. Tagging it as a row as well nested one row inside
+			 * another and let row-level spacing apply twice.
+			 */
 			$fresh
 				.first()
-				.addClass( 'beeoch-opc-promo__item beeoch-opc-promo__item--gathered' )
+				.addClass(
+					$slot.length
+						? 'beeoch-opc-promo__item--gathered'
+						: 'beeoch-opc-promo__item beeoch-opc-promo__item--gathered'
+				)
 				.appendTo( $target );
 
 			if ( $slot.length ) {

@@ -411,17 +411,36 @@
 	outline-offset: -2px;
 }
 
+/*
+ * No border here. This dates from when the panel was itself a <details> and the body needed a
+ * rule separating it from its summary. That summary is gone (Promotions::render renders a plain
+ * container), and §21 now draws the line above the first row instead — so a border here stacked
+ * with that one and put two rules 1px apart at the top of the panel.
+ *
+ * The padding is zeroed in §21 as well; it is left out rather than declared and immediately
+ * overridden.
+ */
 .beeoch-opc-active .beeoch-opc-promo__body {
-	border-top: 1px solid rgba( 128, 128, 128, 0.26 );
-	padding: clamp( 0.9rem, 1.6vw, 1.25rem );
+	padding: 0;
 }
 
-/* Each relocated block keeps its own markup; we only space them apart. */
-.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item {
-	margin-top: 1em;
-	padding-top: 1em;
-	border-top: 1px solid rgba( 128, 128, 128, 0.18 );
-}
+/*
+ * The generic separator between blocks is GONE — every row now draws its own.
+ *
+ * It used to read:
+ *
+ *   .beeoch-opc-promo__item + .beeoch-opc-promo__item {
+ *       margin-top: 1em; padding-top: 1em; border-top: 1px solid …;
+ *   }
+ *
+ * That predates the rows being uniform. Now that each row is a `.beeoch-opc-acc` carrying its
+ * own `border-top`, this drew a SECOND line and added a 1em gap on top of it — which is why
+ * §11 existed to cancel it for the points row specifically, and therefore why the rewards row
+ * looked unlike its neighbours. Removing it makes all four identical with no special cases.
+ *
+ * §11 predicted exactly this: "once points is converted to the same <details> row, the generic
+ * separator can go entirely and every row will carry its own." All four are now such rows.
+ */
 
 /*
  * Plugin blocks often ship their own outer margin intended for a standalone position on
@@ -460,12 +479,11 @@
 	width: auto;
 }
 
-.beeoch-opc-active .beeoch-opc-promo__item--gathered + .beeoch-opc-promo__item--gathered,
-.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item--gathered {
-	margin-top: 1em;
-	padding-top: 1em;
-	border-top: 1px solid rgba( 128, 128, 128, 0.18 );
-}
+/*
+ * The gathered variant of the same separator is gone for the same reason. A gathered block now
+ * lands inside a server-rendered row (Promotions::render_slot) whose `.beeoch-opc-acc` already
+ * draws the line, so this only ever added a duplicate.
+ */
 
 /* Elementor's coupon box sets its own width and section padding for a full-row position. */
 .beeoch-opc-active .beeoch-opc-promo__item--gathered.e-coupon-box {
@@ -713,29 +731,19 @@
 }
 
 /* --------------------------------------------------------------------------
- * 11. Points row — drop the inherited separator
+ * 11. Retired — the points row no longer needs a special case
  *
- * The generic `.beeoch-opc-promo__item + .beeoch-opc-promo__item` rule draws a rule and adds
- * spacing between blocks. The store-credit row now supplies its own separator through
- * `.beeoch-opc-acc`, so the two stack up and the points block gets a doubled line.
+ * This section cancelled the generic `.item + .item` separator for the points row alone,
+ * because that separator doubled up with the row's own `.beeoch-opc-acc` border. It was always
+ * marked transitional, pending every block becoming a <details> row.
  *
- * This is transitional: once points is converted to the same <details> row, the generic
- * separator can go entirely and every row will carry its own.
+ * That is now the case, the generic separator has been deleted at its source, and so this
+ * override has nothing left to override. Keeping it would have made points the one row that
+ * suppresses its own border — the inverse of the bug it was written to fix.
+ *
+ * Nothing replaces it. Every row draws one border from `.beeoch-opc-acc`, the first is
+ * suppressed by `:first-child`, and the panel supplies the rule above the first row.
  * ----------------------------------------------------------------------- */
-
-/*
- * Written as `.item + .item--points`, not `.item--points`.
- *
- * The rule being overridden is `.beeoch-opc-active .beeoch-opc-promo__item +
- * .beeoch-opc-promo__item`, which is three classes. A two-class override loses no matter
- * where it sits in the file — the same specificity slip that has bitten several times in
- * this stylesheet. Matching the shape puts both at three classes, and later wins.
- */
-.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item--points {
-	border-top: 0;
-	margin-top: 0;
-	padding-top: 0;
-}
 
 /* --------------------------------------------------------------------------
  * 12. Points row — same treatment as store credit
