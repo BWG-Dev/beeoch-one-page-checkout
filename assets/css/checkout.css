@@ -2024,3 +2024,99 @@
 	color: var( --opc-danger, #b32d2e );
 	text-align: left;
 }
+
+/* --------------------------------------------------------------------------
+ * 38. Shipping options get the full width — MOBILE ONLY
+ *
+ * §26 sets `table-layout: fixed` with a 78/22 split, which is right for product rows: the name
+ * needs the room, the price needs almost none. But columns in a fixed-layout table belong to
+ * the TABLE, not to a row, so `tfoot` is stuck with the same 78/22 — putting "Shipping" in a
+ * 78% cell and squeezing the method radios into the remaining 22%, where each option wrapped
+ * over several lines and stacked hard against the left.
+ *
+ * No per-row width can fix that while the layout is fixed, so the row leaves the column model
+ * altogether: row and cells become blocks, the label sits on its own line, and the options take
+ * the full width beneath it.
+ *
+ * Scoped to `max-width: 1024px` because the desktop layout is not to be touched. 1024 is the
+ * complement of the `min-width: 1025px` used by §7 and §25, so the two never overlap and there
+ * is one breakpoint in this file rather than two. If "mobile" is meant to exclude tablets,
+ * 767px is the other sensible value and only this one line needs changing.
+ *
+ * Only the shipping row is affected. Subtotal, discounts and order total keep the 78/22
+ * alignment at every width — they are label/amount pairs, which is what that split is for.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals {
+		display: block;
+		width: 100%;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
+		display: block;
+		width: auto;
+		max-width: none;
+		text-align: left;
+	}
+
+	/* The label is a heading for the options under it, not half of a label/amount pair. */
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th {
+		padding-bottom: 0.3rem;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
+		padding-top: 0;
+	}
+
+	/* One option per line, radio and label on a single baseline. */
+	.beeoch-opc-active #shipping_method,
+	.beeoch-opc-active ul.woocommerce-shipping-methods {
+		display: grid;
+		gap: 0.45rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.beeoch-opc-active #shipping_method > li,
+	.beeoch-opc-active ul.woocommerce-shipping-methods > li {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.55rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		text-align: left;
+	}
+
+	.beeoch-opc-active #shipping_method > li input.shipping_method {
+		flex: 0 0 auto;
+		margin: 0.2rem 0 0;
+	}
+
+	/*
+	 * The label carries the method name and its cost as one phrase ("Flat rate: $9.95"), so it
+	 * is left to read as one phrase rather than being split into columns — the amount is not a
+	 * separate column here.
+	 */
+	.beeoch-opc-active #shipping_method > li label,
+	.beeoch-opc-active ul.woocommerce-shipping-methods > li label {
+		flex: 1 1 auto;
+		margin: 0;
+		line-height: 1.4;
+		cursor: pointer;
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+
+	/* "Shipping to …" is supporting detail, not an option. */
+	.beeoch-opc-active .woocommerce-shipping-destination {
+		margin: 0.5rem 0 0;
+		font-size: 0.82rem;
+		line-height: 1.4;
+		opacity: 0.75;
+	}
+}
