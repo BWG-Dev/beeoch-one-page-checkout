@@ -133,6 +133,23 @@ class MutationHandler {
 			}
 		}
 
+		/*
+		 * The customer asked for more than is available.
+		 *
+		 * WooCommerce's own stock check (`WC_Cart::check_cart_items`) never runs on this
+		 * request — `update_order_review` calculates totals and renders fragments without it —
+		 * so nothing else on this path will say a word about stock. Without this, an over-stock
+		 * quantity was quietly reduced and the customer found out at Place Order, if at all.
+		 *
+		 * Announced as an error rather than a notice because it is a refusal of what was asked
+		 * for, not information. Either type would surface it: `update_order_review` returns
+		 * whatever `wc_print_notices()` produces and reports `result: failure` when that is
+		 * non-empty, which is what makes checkout.js render it.
+		 */
+		if ( $result['ok'] && ! empty( $result['clamped'] ) && function_exists( 'wc_add_notice' ) ) {
+			wc_add_notice( $this->stock_message( $result ), 'error' );
+		}
+
 		if ( ! $result['ok'] ) {
 			$this->log( sprintf( '%s refused: %s (key=%s qty=%d)', $action, $result['code'], $key, $quantity ) );
 
@@ -148,6 +165,46 @@ class MutationHandler {
 				);
 			}
 		}
+	}
+
+	/**
+	 * Wording for a quantity that had to be reduced.
+	 *
+	 * Names the product, because the notice group sits at the top of the form well away from
+	 * the line it refers to — a cart with several lines gives "only 3 left" no way to be acted
+	 * on. Says what the quantity now is, so the number in the summary is explained rather than
+	 * merely different from what was typed.
+	 *
+	 * @param array<string, mixed> $result Mutation result.
+	 */
+	private function stock_message( array $result ): string {
+		$name     = (string) ( $result['name'] ?? '' );
+		$quantity = (int) ( $result['quantity'] ?? 0 );
+
+		if ( '' === $name ) {
+			return sprintf(
+				/* translators: %d: quantity available. */
+				__( 'Only %d of that item are available, so the quantity has been set to %d.', 'beeoch-opc' ),
+				$quantity,
+				$quantity
+			);
+		}
+
+		// "Sold individually" and one-in-stock read the same to a customer, and both are this.
+		if ( 1 === $quantity ) {
+			return sprintf(
+				/* translators: %s: product name. */
+				__( 'Only one of “%s” is available, so the quantity has been set to 1.', 'beeoch-opc' ),
+				$name
+			);
+		}
+
+		return sprintf(
+			/* translators: 1: quantity available, 2: product name. */
+			__( 'Only %1$d of “%2$s” are available, so the quantity has been set to %1$d.', 'beeoch-opc' ),
+			$quantity,
+			$name
+		);
 	}
 
 	/**

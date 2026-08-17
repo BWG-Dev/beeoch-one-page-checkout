@@ -67,19 +67,33 @@ class Mutations {
 			return $this->fail( 'not_editable' );
 		}
 
-		$quantity = $this->clamp( $quantity, $cart_item );
+		$requested = max( 0, $quantity );
+		$max       = $this->max_quantity( $cart_item );
+		$quantity  = $this->clamp( $requested, $max );
 
 		if ( $quantity < 1 ) {
 			// Removal is a separate operation with its own policy check. Not this method's job.
 			return $this->fail( 'removal_not_supported' );
 		}
 
+		/*
+		 * Whether the customer asked for more than they can have.
+		 *
+		 * Reported rather than absorbed. The clamp has always been here, so an over-stock
+		 * request was already held to what WooCommerce allows — but silently, so asking for 200
+		 * of a product with 199 in stock simply produced 199 with no explanation, and asking
+		 * again produced nothing at all. Being right about the number is not the same as
+		 * telling the customer what happened.
+		 */
+		$clamped = $requested > $quantity;
+
 		if ( (int) ( $cart_item['quantity'] ?? 0 ) === $quantity ) {
-			return array(
-				'ok'       => true,
-				'code'     => 'unchanged',
-				'quantity' => $quantity,
-			);
+			/*
+			 * Nothing to apply — but if we got here by clamping, this is the case that most
+			 * needs a message: the line is already at the limit, so the customer's click
+			 * changed nothing and no refresh would otherwise explain why.
+			 */
+			return $this->result( 'unchanged', $quantity, $requested, $max, $clamped, $cart_item );
 		}
 
 		/*
@@ -92,11 +106,7 @@ class Mutations {
 			return $this->fail( 'rejected' );
 		}
 
-		return array(
-			'ok'       => true,
-			'code'     => 'updated',
-			'quantity' => $quantity,
-		);
+		return $this->result( 'updated', $quantity, $requested, $max, $clamped, $cart_item );
 	}
 
 	/**
@@ -135,50 +145,83 @@ class Mutations {
 
 		$cart->calculate_totals();
 
-		return array(
-			'ok'       => true,
-			'code'     => 'removed',
-			'quantity' => 0,
-		);
+		return $this->result( 'removed', 0, 0, null, false, $cart_item );
 	}
 
 	/**
-	 * Hold the requested quantity inside what WooCommerce would allow.
+	 * Upper bound for this line, or null when unlimited.
 	 *
-	 * Uses the product's own max-purchase rule so stock, backorder settings and any
-	 * per-product limit are applied by the same logic the cart page uses.
+	 * Delegates to the product's own max-purchase rule so stock, backorder settings and
+	 * "sold individually" are applied by exactly the logic the cart page uses. WooCommerce
+	 * returns -1 for no limit.
 	 *
-	 * @param int                  $quantity  Requested quantity.
 	 * @param array<string, mixed> $cart_item Cart item.
 	 */
-	private function clamp( int $quantity, array $cart_item ): int {
-		$quantity = max( 0, $quantity );
-		$product  = $cart_item['data'] ?? null;
+	private function max_quantity( array $cart_item ): ?int {
+		$product = $cart_item['data'] ?? null;
 
 		if ( ! $product instanceof WC_Product ) {
-			return $quantity;
+			return null;
 		}
 
 		$max = $product->get_max_purchase_quantity();
 
-		if ( is_numeric( $max ) && (int) $max > 0 ) {
-			$quantity = min( $quantity, (int) $max );
-		}
+		return ( is_numeric( $max ) && (int) $max > 0 ) ? (int) $max : null;
+	}
 
-		return $quantity;
+	/**
+	 * Hold a requested quantity inside the given bound.
+	 *
+	 * @param int      $quantity Requested quantity.
+	 * @param int|null $max      Upper bound, or null for unlimited.
+	 */
+	private function clamp( int $quantity, ?int $max ): int {
+		$quantity = max( 0, $quantity );
+
+		return ( null === $max ) ? $quantity : min( $quantity, $max );
+	}
+
+	/**
+	 * Build a success result.
+	 *
+	 * @param string               $code      Machine-readable outcome.
+	 * @param int                  $quantity  Quantity actually applied.
+	 * @param int                  $requested Quantity the customer asked for.
+	 * @param int|null             $max       Upper bound, or null for unlimited.
+	 * @param bool                 $clamped   Whether the request was reduced to fit.
+	 * @param array<string, mixed> $cart_item Cart item.
+	 * @return array{ok:bool, code:string, quantity:int, requested:int, max:int|null, clamped:bool, name:string}
+	 */
+	private function result( string $code, int $quantity, int $requested, ?int $max, bool $clamped, array $cart_item ): array {
+		$product = $cart_item['data'] ?? null;
+
+		return array(
+			'ok'        => true,
+			'code'      => $code,
+			'quantity'  => $quantity,
+			'requested' => $requested,
+			'max'       => $max,
+			'clamped'   => $clamped,
+			// Carried so the caller can name the line in a message without a second lookup.
+			'name'      => $product instanceof WC_Product ? $product->get_name() : '',
+		);
 	}
 
 	/**
 	 * Build a failure result.
 	 *
 	 * @param string $code Machine-readable reason.
-	 * @return array{ok:bool, code:string, quantity:int}
+	 * @return array{ok:bool, code:string, quantity:int, requested:int, max:int|null, clamped:bool, name:string}
 	 */
 	private function fail( string $code ): array {
 		return array(
-			'ok'       => false,
-			'code'     => $code,
-			'quantity' => 0,
+			'ok'        => false,
+			'code'      => $code,
+			'quantity'  => 0,
+			'requested' => 0,
+			'max'       => null,
+			'clamped'   => false,
+			'name'      => '',
 		);
 	}
 }

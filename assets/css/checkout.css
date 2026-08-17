@@ -2001,3 +2001,26 @@
 	padding: 0;
 	min-height: 0;
 }
+
+/* --------------------------------------------------------------------------
+ * 37. Inline reason when a quantity change is refused
+ *
+ * Shown beside the stepper by checkout.js when the bounds reject a click — the case where no
+ * request is sent, so no refresh happens and the server never gets to explain. WooCommerce's
+ * notice group handles the rest, but it renders at the top of the form, which is usually
+ * scrolled out of view when someone is editing the order summary.
+ *
+ * Sized in `rem`, not `em`: the product cell's font-size varies with the theme, and `em` here
+ * produced visibly different text from one row to the next.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty__hint {
+	display: block;
+	flex-basis: 100%;
+	margin: 0.4rem 0 0;
+	font-size: 0.78rem;
+	line-height: 1.35;
+	font-weight: 600;
+	color: var( --opc-danger, #b32d2e );
+	text-align: left;
+}

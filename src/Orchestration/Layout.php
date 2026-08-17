@@ -96,6 +96,11 @@ class Layout {
 			'beeochOpc',
 			array(
 				'version' => BEEOCH_OPC_VERSION,
+				'i18n'    => array(
+					/* translators: %d: number of units still in stock. */
+					'stockMax' => __( 'Only %d left in stock.', 'beeoch-opc' ),
+					'minOne'   => __( 'Use the × button to remove this item.', 'beeoch-opc' ),
+				),
 			)
 		);
 	}

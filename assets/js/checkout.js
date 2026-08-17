@@ -22,6 +22,10 @@
 
 	var settings = window.beeochOpc;
 	var DEBOUNCE_MS = 350;
+	var HINT_MS = 5000;
+
+	// Translated strings, with English fallbacks so a missing localisation never blanks a hint.
+	var I18N = settings.i18n || {};
 
 	var pending = null;   // Coalesced edit awaiting dispatch.
 	var timer = null;
@@ -115,6 +119,49 @@
 	}
 
 	/**
+	 * Say why a quantity change was refused, next to the control that refused it.
+	 *
+	 * When the bounds reject a click, no request is sent — so there is no refresh, and the
+	 * server has no opportunity to explain. Without this the customer clicks "+" and nothing
+	 * whatsoever happens, which reads as a broken button rather than as a stock limit.
+	 *
+	 * Placed beside the stepper rather than in WooCommerce's notice group at the top of the
+	 * form: the notice group is what the server uses, and it is usually scrolled out of sight
+	 * when someone is working in the order summary.
+	 *
+	 * `role="status"` so it is announced. A silent no-op is worse with a screen reader, not
+	 * better.
+	 */
+	function hint( $control, message ) {
+		if ( ! message ) {
+			return;
+		}
+
+		$control.siblings( '.beeoch-opc-qty__hint' ).remove();
+
+		var $hint = $( '<span/>', {
+			'class': 'beeoch-opc-qty__hint',
+			role: 'status',
+			text: message
+		} );
+
+		$control.after( $hint );
+
+		window.setTimeout( function () {
+			$hint.fadeOut( 200, function () {
+				$hint.remove();
+			} );
+		}, HINT_MS );
+	}
+
+	/**
+	 * The upper bound this control was rendered with, or NaN when unlimited.
+	 */
+	function maxOf( $control ) {
+		return parseInt( $control.attr( 'data-max' ), 10 );
+	}
+
+	/**
 	 * Enable controls and wire them up. Runs on load and after every refresh, because
 	 * the review table is replaced wholesale each time.
 	 */
@@ -142,11 +189,27 @@
 
 		var $input = $control.find( '.beeoch-opc-qty__input' );
 		var delta = parseInt( $button.attr( 'data-beeoch-opc-delta' ), 10 ) || 0;
-		var next = clamp( $control, ( parseInt( $input.val(), 10 ) || 0 ) + delta );
+		var current = parseInt( $input.val(), 10 ) || 0;
+		var next = clamp( $control, current + delta );
 
-		if ( next === ( parseInt( $input.val(), 10 ) || 0 ) ) {
+		if ( next === current ) {
+			/*
+			 * The bounds refused this. Previously the handler returned here in silence, so
+			 * pressing "+" on a line already at its stock limit did nothing at all and gave
+			 * the customer no way to tell a limit from a bug.
+			 */
+			var max = maxOf( $control );
+
+			if ( delta > 0 && ! isNaN( max ) && current >= max ) {
+				hint( $control, ( I18N.stockMax || 'Only %d left in stock.' ).replace( '%d', max ) );
+			} else if ( delta < 0 ) {
+				hint( $control, I18N.minOne );
+			}
+
 			return;
 		}
+
+		$control.siblings( '.beeoch-opc-qty__hint' ).remove();
 
 		// Optimistic: the number moves immediately, totals catch up on the refresh.
 		$input.val( next );
@@ -183,7 +246,18 @@
 	$( document.body ).on( 'change', '.beeoch-opc-qty__input', function () {
 		var $input = $( this );
 		var $control = $input.closest( '.beeoch-opc-qty' );
-		var next = clamp( $control, parseInt( $input.val(), 10 ) );
+		var requested = parseInt( $input.val(), 10 );
+		var next = clamp( $control, requested );
+
+		/*
+		 * A typed value above the limit is held down to it. Said immediately here, and again by
+		 * the server in WooCommerce's notice group — the refresh replaces this table and takes
+		 * this hint with it, and the server's copy is the one that is authoritative anyway,
+		 * since stock can have moved since the page was rendered.
+		 */
+		if ( ! isNaN( requested ) && requested > next && ! isNaN( maxOf( $control ) ) ) {
+			hint( $control, ( I18N.stockMax || 'Only %d left in stock.' ).replace( '%d', next ) );
+		}
 
 		$input.val( next );
 		$control.attr( 'data-state', 'busy' );
