@@ -2081,13 +2081,34 @@
 		list-style: none;
 	}
 
+	/*
+	 * WooCommerce gives each option a hanging indent:
+	 *
+	 *   ul#shipping_method li:not(.elementor-widget-woocommerce-cart #shipping_method li) {
+	 *       padding: 0.25em 0 0.25em 22px;
+	 *       text-indent: -22px;
+	 *   }
+	 *
+	 * That pairs a 22px left padding with a matching negative indent so a radio sitting INLINE
+	 * in the text flow hangs in the gutter and wrapped lines align under the label. Making the
+	 * item a flex container breaks both halves of that bargain: the padding becomes dead space
+	 * on the left, and the negative indent — inherited by the label, since `text-indent`
+	 * inherits — drags the label's first line 22px left, directly underneath the radio. That
+	 * inheritance is the overlap; resetting the padding alone would not have fixed it.
+	 *
+	 * `!important` rather than a more specific selector: their selector carries `#shipping_method`
+	 * plus another ID inside the `:not()`, and no number of classes outranks an ID. Their
+	 * declarations are not important, so ours win — the one case where `!important` is the
+	 * correct instrument rather than a shortcut.
+	 */
 	.beeoch-opc-active #shipping_method > li,
 	.beeoch-opc-active ul.woocommerce-shipping-methods > li {
 		display: flex;
 		align-items: flex-start;
 		gap: 0.55rem;
-		margin: 0;
-		padding: 0;
+		margin: 0 !important;
+		padding: 0.25rem 0 !important;
+		text-indent: 0 !important;
 		list-style: none;
 		text-align: left;
 	}
@@ -2106,6 +2127,9 @@
 	.beeoch-opc-active ul.woocommerce-shipping-methods > li label {
 		flex: 1 1 auto;
 		margin: 0;
+		/* Belt and braces against the inherited negative indent reset on the item above. */
+		text-indent: 0 !important;
+		padding-left: 0 !important;
 		line-height: 1.4;
 		cursor: pointer;
 		white-space: normal;
