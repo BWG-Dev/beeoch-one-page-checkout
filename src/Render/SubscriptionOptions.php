@@ -127,6 +127,7 @@ class SubscriptionOptions {
 		$price = (string) WC()->cart->get_product_price( $product );
 
 		add_filter( 'woocommerce_is_cart', '__return_true' );
+		add_filter( 'wc_get_template', array( $this, 'swap_template' ), 10, 2 );
 
 		try {
 			$output = (string) WCS_ATT_Display_Cart::show_cart_item_subscription_options( $price, $cart_item, $cart_item_key );
@@ -135,10 +136,52 @@ class SubscriptionOptions {
 
 			$output = '';
 		} finally {
+			remove_filter( 'wc_get_template', array( $this, 'swap_template' ), 10 );
 			remove_filter( 'woocommerce_is_cart', '__return_true' );
 		}
 
 		return $this->extract_options( $output );
+	}
+
+	/**
+	 * Render the plan options as a dropdown rather than a radio list.
+	 *
+	 * A list of radios is right on a cart page, where each line has room to breathe. In the
+	 * checkout order summary — a narrow column, one line among several — six radios per item is
+	 * a wall of them, so the same options are collapsed into one control.
+	 *
+	 * Done by swapping the template rather than by rewriting their markup afterwards. String
+	 * surgery on another plugin's HTML breaks the first time they change a wrapper, and quietly:
+	 * the regex simply stops matching and the switcher disappears. Swapping the template means
+	 * the OPTIONS are still entirely theirs — every value, label and selected state — and only
+	 * the control that presents them is ours.
+	 *
+	 * The filter is added immediately before their call and removed in the same `finally` as
+	 * the `is_cart()` spoof, so it cannot affect a template load anywhere else.
+	 *
+	 * @param string $template Resolved template path.
+	 * @param string $name     Template name being loaded.
+	 */
+	public function swap_template( $template, $name ) {
+		if ( 'cart/cart-item-subscription-options.php' !== $name ) {
+			return $template;
+		}
+
+		/**
+		 * Which control the plan options are presented with.
+		 *
+		 * Return 'radio' to keep All Products for Subscriptions' own radio list.
+		 *
+		 * @param string $control Either 'select' or 'radio'.
+		 */
+		if ( 'select' !== apply_filters( 'beeoch_opc_plan_control', 'select' ) ) {
+			return $template;
+		}
+
+		$ours = BEEOCH_OPC_DIR . 'templates/wcsatt/cart-item-subscription-options.php';
+
+		// Never hand back a path that does not exist — that would fatal inside their include.
+		return is_readable( $ours ) ? $ours : $template;
 	}
 
 	/**
@@ -156,6 +199,22 @@ class SubscriptionOptions {
 	 * @param string $output Their return value.
 	 */
 	private function extract_options( string $output ): string {
+		/*
+		 * Our own template fences its output in comments, so when the swap succeeded the
+		 * boundaries are exact and independent of the markup between them.
+		 */
+		$open  = strpos( $output, '<!--beeoch-opc-plan-->' );
+		$close = strpos( $output, '<!--/beeoch-opc-plan-->' );
+
+		if ( false !== $open && false !== $close && $close > $open ) {
+			return substr( $output, $open, $close - $open + strlen( '<!--/beeoch-opc-plan-->' ) );
+		}
+
+		/*
+		 * Fallback for their radio list — when `beeoch_opc_plan_control` asks for radios, or if
+		 * the template name changes in a future version and the swap silently stops applying.
+		 * The switcher then still works, in its original form, rather than vanishing.
+		 */
 		$start = strpos( $output, '<ul class="wcsatt-options' );
 
 		if ( false === $start ) {

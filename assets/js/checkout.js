@@ -255,7 +255,7 @@
 	 * and a single-use token, and a plan change is neither. Sending one would consume a token
 	 * for an edit the server was never asked to make.
 	 */
-	$( document.body ).on( 'change', '.beeoch-opc-plan input[type="radio"]', function () {
+	$( document.body ).on( 'change', '.beeoch-opc-plan select, .beeoch-opc-plan input[type="radio"]', function () {
 		$( this ).closest( '.beeoch-opc-plan' ).attr( 'data-state', 'busy' );
 		$( document.body ).trigger( 'update_checkout' );
 	} );
