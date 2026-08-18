@@ -35,6 +35,50 @@ class Hooks {
 	 * @return callable|null The detached callable, or null if it was not registered.
 	 */
 	public static function detach( string $hook, string $class, string $method, ?int $priority = null ): ?callable {
+		$found = self::locate( $hook, $class, $method, $priority );
+
+		if ( null === $found ) {
+			return null;
+		}
+
+		remove_action( $hook, $found['callback'], $found['priority'] );
+
+		return is_callable( $found['callback'] ) ? $found['callback'] : null;
+	}
+
+	/**
+	 * Find a callback by class and method and hand it back, leaving it registered.
+	 *
+	 * The counterpart to `detach()`, for borrowing a plugin's renderer rather than relocating
+	 * it. Detaching would be wrong when the callback still has a job to do where it is — the
+	 * free-gift picker, for instance, is wanted at checkout AND left in place for the cart.
+	 *
+	 * @param string   $hook     Hook name.
+	 * @param string   $class    Fully-qualified class name, or '' for plain functions.
+	 * @param string   $method   Method or function name.
+	 * @param int|null $priority Restrict to one priority, or null for any.
+	 * @return callable|null The registered callable, or null if it was not found.
+	 */
+	public static function find( string $hook, string $class, string $method, ?int $priority = null ): ?callable {
+		$found = self::locate( $hook, $class, $method, $priority );
+
+		if ( null === $found || ! is_callable( $found['callback'] ) ) {
+			return null;
+		}
+
+		return $found['callback'];
+	}
+
+	/**
+	 * Locate a registered callback without touching it.
+	 *
+	 * @param string   $hook     Hook name.
+	 * @param string   $class    Fully-qualified class name, or '' for plain functions.
+	 * @param string   $method   Method or function name.
+	 * @param int|null $priority Restrict to one priority, or null for any.
+	 * @return array{callback:mixed, priority:int}|null
+	 */
+	private static function locate( string $hook, string $class, string $method, ?int $priority = null ): ?array {
 		global $wp_filter;
 
 		if ( empty( $wp_filter[ $hook ] ) ) {
@@ -47,15 +91,12 @@ class Hooks {
 			}
 
 			foreach ( $group as $entry ) {
-				$callback = $entry['function'];
-
-				if ( ! self::matches( $callback, $class, $method ) ) {
-					continue;
+				if ( self::matches( $entry['function'], $class, $method ) ) {
+					return array(
+						'callback' => $entry['function'],
+						'priority' => (int) $registered_priority,
+					);
 				}
-
-				remove_action( $hook, $callback, (int) $registered_priority );
-
-				return is_callable( $callback ) ? $callback : null;
 			}
 		}
 

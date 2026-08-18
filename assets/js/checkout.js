@@ -255,6 +255,27 @@
 	 * and a single-use token, and a plan change is neither. Sending one would consume a token
 	 * for an edit the server was never asked to make.
 	 */
+	/**
+	 * Refresh after the free-gift plugin changes the cart.
+	 *
+	 * Adding or swapping a gift is their own AJAX call, and it knows nothing about this
+	 * checkout — it neither triggers `update_checkout` nor reloads. Without this the gift lands
+	 * in the cart while the totals, the line items and the eligibility message all continue to
+	 * describe the cart as it was a moment ago.
+	 *
+	 * Matched on the request body rather than by wrapping their code, so no assumption is made
+	 * about which of their handlers ran. `update_order_review` is itself an admin-ajax-free
+	 * `wc-ajax` call whose body carries none of these action names, so this cannot re-trigger
+	 * itself.
+	 */
+	$( document ).ajaxComplete( function ( event, xhr, settings ) {
+		var body = ( settings && typeof settings.data === 'string' ) ? settings.data : '';
+
+		if ( /action=[^&]*(itg_|pw_gift|wgb_)/i.test( body ) ) {
+			$( document.body ).trigger( 'update_checkout' );
+		}
+	} );
+
 	$( document.body ).on( 'change', '.beeoch-opc-plan select, .beeoch-opc-plan input[type="radio"]', function () {
 		$( this ).closest( '.beeoch-opc-plan' ).attr( 'data-state', 'busy' );
 		$( document.body ).trigger( 'update_checkout' );

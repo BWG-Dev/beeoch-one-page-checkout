@@ -2334,3 +2334,84 @@
 .beeoch-opc-active .beeoch-opc-plan__select option {
 	white-space: normal;
 }
+
+/* --------------------------------------------------------------------------
+ * 42. Free gift call-out
+ *
+ * Rendered by `FreeGift` into the order-review column, above the promotions panel, and
+ * replaced wholesale on every refresh. When the cart stops qualifying the fragment comes back
+ * empty — hence `:empty` doing the hiding rather than the block being removed, which would
+ * leave the fragment with no node to replace next time.
+ *
+ * Given its own `order` so it sits between the summary and the promotions: after the totals
+ * that decide eligibility, before the rows a customer works through.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-gift {
+	order: 2;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-promo {
+	order: 3;
+}
+
+/* No offer, no box — but the element stays in the DOM for the next fragment swap. */
+.beeoch-opc-active .beeoch-opc-gift:empty {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-gift {
+	margin-top: var( --opc-gap );
+}
+
+.beeoch-opc-active .beeoch-opc-gift__inner {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.7rem;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid var( --opc-rule-soft );
+	border-radius: 8px;
+	/* A tint of the store's own accent, so it reads as an offer rather than as an error. */
+	background: color-mix( in srgb, currentColor 4%, transparent );
+}
+
+.beeoch-opc-active .beeoch-opc-gift__icon {
+	flex: 0 0 auto;
+	width: 1.35rem;
+	line-height: 0;
+	margin-top: 0.1rem;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__icon svg {
+	width: 1.35rem;
+	height: 1.35rem;
+	display: block;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__message {
+	margin: 0;
+	font-size: 0.88rem;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	margin-top: 0.6rem;
+}
+
+/*
+ * The picker is the plugin's own markup, including a select it upgrades with JavaScript.
+ * Only its width is constrained — restyling it risks fighting the script that decorates it.
+ */
+.beeoch-opc-active .beeoch-opc-gift__picker select {
+	max-width: 100%;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__picker .demo-live {
+	max-width: 100%;
+}
