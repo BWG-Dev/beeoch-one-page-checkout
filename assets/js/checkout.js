@@ -243,6 +243,23 @@
 		timer = window.setTimeout( dispatch, 0 );
 	} );
 
+	/**
+	 * A plan change refreshes the totals.
+	 *
+	 * The radios are All Products for Subscriptions' own, named `cart[key][convert_to_sub]`,
+	 * and they sit inside `form.checkout` — so WooCommerce serialises them into `post_data`
+	 * without any help from us. Nothing needs to be carried, queued or de-duplicated here; the
+	 * refresh alone delivers the choice, and `SchemeUpdate` applies it server-side.
+	 *
+	 * Deliberately not routed through queue(): that carries OUR mutation fields with a nonce
+	 * and a single-use token, and a plan change is neither. Sending one would consume a token
+	 * for an edit the server was never asked to make.
+	 */
+	$( document.body ).on( 'change', '.beeoch-opc-plan input[type="radio"]', function () {
+		$( this ).closest( '.beeoch-opc-plan' ).attr( 'data-state', 'busy' );
+		$( document.body ).trigger( 'update_checkout' );
+	} );
+
 	$( document.body ).on( 'change', '.beeoch-opc-qty__input', function () {
 		var $input = $( this );
 		var $control = $input.closest( '.beeoch-opc-qty' );

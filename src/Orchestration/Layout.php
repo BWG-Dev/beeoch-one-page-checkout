@@ -12,9 +12,11 @@ namespace Beeoch\OPC\Orchestration;
 use Beeoch\OPC\Cart\ItemPolicy;
 use Beeoch\OPC\Cart\MutationHandler;
 use Beeoch\OPC\Cart\Mutations;
+use Beeoch\OPC\Cart\SchemeUpdate;
 use Beeoch\OPC\Render\ItemName;
 use Beeoch\OPC\Render\Promotions;
 use Beeoch\OPC\Render\QuantityControl;
+use Beeoch\OPC\Render\SubscriptionOptions;
 use Beeoch\OPC\Support\Flag;
 
 defined( 'ABSPATH' ) || exit;
@@ -48,8 +50,10 @@ class Layout {
 	public function register(): void {
 		( new ItemName() )->register();
 		( new QuantityControl( $this->policy ) )->register();
+		( new SubscriptionOptions() )->register();
 		( new Promotions() )->register();
 		( new MutationHandler( new Mutations( $this->policy ) ) )->register();
+		( new SchemeUpdate() )->register();
 		( new CartRedirect() )->register();
 
 		/*
