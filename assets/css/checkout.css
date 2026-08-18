@@ -2446,24 +2446,25 @@
 	max-width: 100%;
 }
 
-/* Nothing inside the picker may be wider than the block, whatever it renders. */
-.beeoch-opc-active .beeoch-opc-gift__picker * {
-	max-width: 100%;
-	box-sizing: border-box;
-}
-
+/*
+ * Descendants are NOT capped with a blanket `max-width: 100%`.
+ *
+ * That rule was here and it broke the carousel outright. owl-carousel sizes `.owl-stage` to the
+ * combined width of every slide — 8618px in this store's case — and then scrolls it with a
+ * transform. Capping the stage to the width of its container while the transform still moved it
+ * by -2154px pushed every slide out of view, leaving a correctly-sized box with nothing in it.
+ *
+ * Only images are capped, which is the case that actually needed it. Width belongs to whatever
+ * component is doing the laying out; §44 contains the column instead, which is the right place
+ * for it and does not require knowing anything about the plugin's internals.
+ */
 .beeoch-opc-active .beeoch-opc-gift__picker img {
+	max-width: 100%;
 	height: auto;
 }
 
-/*
- * A last resort for a layout that still insists on being wide — scroll it inside the block
- * rather than let it widen the column. Vertical overflow stays visible so a dropdown's options
- * are not clipped.
- */
 .beeoch-opc-active .beeoch-opc-gift__picker {
-	overflow-x: auto;
-	overflow-y: visible;
+	box-sizing: border-box;
 }
 
 /*
@@ -2534,18 +2535,56 @@
 	display: block;
 }
 
-/* Once owl owns it, it still may not exceed the block it sits in. */
+/*
+ * Once owl owns the carousel, containment is the OUTER element's job and only its job.
+ *
+ * `.owl-stage-outer` is the viewport: clipping there is what turns an 8618px stage into a
+ * window the width of the column. The stage and the items inside it must keep the widths owl
+ * gave them — capping those is what emptied the box.
+ */
 .beeoch-opc-active .beeoch-opc-gift .owl-carousel,
 .beeoch-opc-active .beeoch-opc-gift .owl-stage-outer {
 	max-width: 100%;
 	overflow: hidden;
 }
 
+.beeoch-opc-active .beeoch-opc-gift .owl-stage,
+.beeoch-opc-active .beeoch-opc-gift .owl-item {
+	max-width: none;
+}
+
 /*
- * Whatever the picker turns out to contain, it is capped. A tall list scrolls inside the block
- * rather than pushing the pay button off the screen.
+ * No height cap and no vertical scrollbar. The earlier `max-height: 22rem; overflow-y: auto`
+ * is what produced a tall scrolling area around content that was not there — the carousel sizes
+ * itself to one row of slides, so there is nothing to constrain.
  */
 .beeoch-opc-active .beeoch-opc-gift__picker {
-	max-height: 22rem;
-	overflow-y: auto;
+	max-height: none;
+	overflow-y: visible;
+}
+
+/* Their heading inside the picker is a page-level h2; it should read as a line of the block. */
+.beeoch-opc-active .beeoch-opc-gift__picker .wgb-title {
+	margin: 0 0 0.5rem;
+	font-size: 0.9rem;
+	line-height: 1.35;
+	font-weight: 600;
+}
+
+/* Slide contents stay legible at column width. */
+.beeoch-opc-active .beeoch-opc-gift .wgb-item-title {
+	margin: 0.35rem 0 0.2rem;
+	font-size: 0.75rem;
+	line-height: 1.3;
+}
+
+.beeoch-opc-active .beeoch-opc-gift .gift-price {
+	font-size: 0.75rem;
+}
+
+.beeoch-opc-active .beeoch-opc-gift .wgb-add-gift-btn {
+	display: inline-block;
+	margin-top: 0.35rem;
+	font-size: 0.75rem;
+	cursor: pointer;
 }
