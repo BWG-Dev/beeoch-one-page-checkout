@@ -2588,3 +2588,23 @@
 	font-size: 0.75rem;
 	cursor: pointer;
 }
+
+/* --------------------------------------------------------------------------
+ * 46. Recurring price on a subscription line
+ *
+ * `.wcs-checkout-item-price` is WooCommerce Subscriptions' own element, returned from
+ * `WC_Subscriptions_Cart::checkout_cart_item_details()` on `woocommerce_checkout_cart_item_quantity`
+ * at priority 10 — so it arrives as part of the markup our stepper wraps at priority 20, and
+ * sits inside `.beeoch-opc-qty` on any line that has a plan.
+ *
+ * Nothing else on the site styles it, so no `!important` is needed and none is used: a plain
+ * rule here can still be overridden from the page later without a fight.
+ *
+ * 15px as specified, rather than converted to rem. It is a fixed request for a fixed size, and
+ * writing it as 0.9375rem would only obscure that.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .wcs-checkout-item-price {
+	font-size: 15px;
+	line-height: 1.4;
+}
