@@ -276,6 +276,27 @@
 		}
 	} );
 
+	/**
+	 * Start the gift carousel.
+	 *
+	 * The gift plugin renders its picker as an owl-carousel and initialises it on document
+	 * ready — but our copy is rebuilt on every refresh, so from the second render onwards the
+	 * markup exists with nothing driving it. An uninitialised owl carousel is not merely
+	 * unstyled: its slides are laid out end to end at full width, which is what pushed the
+	 * order summary wider than its column and squeezed the customer details beside it.
+	 *
+	 * `it-enhanced-carousel` is the plugin's own event for exactly this, so the carousel is
+	 * built with the store's own settings — speed, loop, dots, nav, rtl — rather than a second
+	 * copy of that configuration living here and drifting.
+	 */
+	function startCarousel() {
+		if ( ! $( '.beeoch-opc-gift .it-owl-carousel-items' ).length ) {
+			return;
+		}
+
+		$( document.body ).trigger( 'it-enhanced-carousel' );
+	}
+
 	$( document.body ).on( 'change', '.beeoch-opc-plan select, .beeoch-opc-plan input[type="radio"]', function () {
 		$( this ).closest( '.beeoch-opc-plan' ).attr( 'data-state', 'busy' );
 		$( document.body ).trigger( 'update_checkout' );
@@ -323,6 +344,7 @@
 		 */
 		gather();
 		wrapRows();
+		startCarousel();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -612,5 +634,6 @@
 		bind();
 		gather();
 		wrapRows();
+		startCarousel();
 	} );
 } )( jQuery );

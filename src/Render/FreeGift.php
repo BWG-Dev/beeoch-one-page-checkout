@@ -144,6 +144,37 @@ class FreeGift {
 	 * @return callable|null
 	 */
 	private function find_picker(): ?callable {
+		/**
+		 * Which of their layouts to render inline.
+		 *
+		 * 'dropdown' asks for `display_gifts_in_Coupon_dropdown()` specifically, whatever the
+		 * store's own `position` and `layout` settings say. 'store' uses whichever renderer
+		 * they have hooked, honouring those settings.
+		 *
+		 * 'store' is the default. 'dropdown' was tried first, on the reasoning that a carousel
+		 * built for the full width of a cart page is the wrong shape for this column — but
+		 * their dropdown renderer passes `is_child => true`, and what that produces is 38 bare
+		 * `<option>` elements with no `<select>` around them. It is designed to be the inner
+		 * half of a control something else supplies, so standalone it is not a picker at all.
+		 * The option is kept because it becomes useful the moment that changes, but it is not
+		 * something to default to.
+		 *
+		 * The carousel's two real problems are both solved elsewhere and neither needed a
+		 * different layout: it is initialised by triggering their own `it-enhanced-carousel`
+		 * event from checkout.js, and it is stopped from widening the column by §43.
+		 *
+		 * @param string $layout Either 'store' or 'dropdown'.
+		 */
+		$layout = (string) apply_filters( 'beeoch_opc_gift_layout', 'store' );
+
+		if ( 'dropdown' === $layout ) {
+			$direct = $this->their_method( 'display_gifts_in_Coupon_dropdown' );
+
+			if ( null !== $direct ) {
+				return $direct;
+			}
+		}
+
 		$candidates = array(
 			array( 'woocommerce_cart_coupon', 'display_gifts_in_Coupon_dropdown' ),
 			array( 'woocommerce_after_cart_table', 'display_gifts_bottom_cart' ),
@@ -161,6 +192,32 @@ class FreeGift {
 		$this->log( 'no inline picker registered — falling back to their modal link' );
 
 		return null;
+	}
+
+	/**
+	 * A method on their object, whether or not it is hooked anywhere.
+	 *
+	 * Their renderers are all methods on one instance, and which of them is registered depends
+	 * on the store's `position` setting — `display_gifts_in_Coupon_dropdown()` is only hooked
+	 * when that is `beside_coupon`, which it is not here. The instance is reached through the
+	 * notice callback already taken over, so the dropdown can be rendered without the store
+	 * having to be reconfigured to use it everywhere else.
+	 *
+	 * @param string $method Method name.
+	 * @return callable|null
+	 */
+	private function their_method( string $method ): ?callable {
+		if ( ! is_array( $this->notice ) || ! isset( $this->notice[0] ) || ! is_object( $this->notice[0] ) ) {
+			return null;
+		}
+
+		$instance = $this->notice[0];
+
+		if ( ! method_exists( $instance, $method ) || ! is_callable( array( $instance, $method ) ) ) {
+			return null;
+		}
+
+		return array( $instance, $method );
 	}
 
 	/**

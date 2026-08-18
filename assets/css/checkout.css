@@ -2415,3 +2415,64 @@
 .beeoch-opc-active .beeoch-opc-gift__picker .demo-live {
 	max-width: 100%;
 }
+
+/* --------------------------------------------------------------------------
+ * 43. The gift block may not push the layout around
+ *
+ * The picker is the gift plugin's own markup, sized for the full width of a cart page. Dropped
+ * into the order-summary column it was wider than its grid track, and because a flex or grid
+ * item defaults to `min-width: auto` — meaning "never shrink below my content" — the column
+ * could not shrink to absorb it. The summary grew, and the customer-details column beside it
+ * was squeezed to almost nothing.
+ *
+ * `min-width: 0` on the checkout's own columns is the fix for that class of bug generally, and
+ * is applied here rather than only to our block: any wide thing a plugin renders into either
+ * column would do the same. The overflow guards below then keep our own block inside its box.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .e-checkout__order_review,
+.beeoch-opc-active .e-checkout__container,
+.beeoch-opc-active #customer_details,
+.beeoch-opc-active #customer_details > .col-1,
+.beeoch-opc-active #customer_details > .col-2 {
+	min-width: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-gift,
+.beeoch-opc-active .beeoch-opc-gift__inner,
+.beeoch-opc-active .beeoch-opc-gift__body,
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	min-width: 0;
+	max-width: 100%;
+}
+
+/* Nothing inside the picker may be wider than the block, whatever it renders. */
+.beeoch-opc-active .beeoch-opc-gift__picker * {
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__picker img {
+	height: auto;
+}
+
+/*
+ * A last resort for a layout that still insists on being wide — scroll it inside the block
+ * rather than let it widen the column. Vertical overflow stays visible so a dropdown's options
+ * are not clipped.
+ */
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	overflow-x: auto;
+	overflow-y: visible;
+}
+
+/*
+ * Their modal lives in the footer and is opened by the "Here" link, which is still in the
+ * message. It must never be laid out as part of our block — when it was, closing it left its
+ * contents sitting inline under the text.
+ */
+.beeoch-opc-active .beeoch-opc-gift .wgb-popup,
+.beeoch-opc-active .beeoch-opc-gift .wgb-popup-box,
+.beeoch-opc-active .beeoch-opc-gift #wgb-modal {
+	display: none !important;
+}
