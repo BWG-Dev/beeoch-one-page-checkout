@@ -273,26 +273,56 @@ class FreeGift {
 	 * The offer itself, or an empty string when there is nothing to offer.
 	 */
 	private function inner(): string {
+		/*
+		 * Still called, still load-bearing — just no longer printed by default.
+		 *
+		 * Their callback reports eligibility by SIDE EFFECT: it adds a notice when this cart
+		 * qualifies and does nothing when it does not. An empty message is therefore the answer
+		 * "no gifts for this cart", which is what withdraws the block when the total drops. It
+		 * has to keep running whether or not anyone reads it.
+		 */
 		$message = $this->message();
 
-		// No message means their own check found no gifts available for this cart.
 		if ( '' === $message ) {
 			return '';
 		}
 
 		$picker = $this->picker_markup();
 
+		/**
+		 * Whether to print the eligibility message and its icon.
+		 *
+		 * Off by default. Once the picker is shown open, the message is the third statement of
+		 * the same fact: the picker carries the plugin's own heading ("Your order qualifies for
+		 * FREE Gifts!") and the gifts themselves are visible below it, so a line of prose and a
+		 * gift icon above them only take space in the summary column.
+		 *
+		 * It comes back automatically when there is no picker to speak for itself — see below —
+		 * so turning this on is only needed to have both at once.
+		 *
+		 * @param bool $show Whether to print the message.
+		 */
+		$show_message = (bool) apply_filters( 'beeoch_opc_gift_show_message', false );
+
+		/*
+		 * With no picker there is nothing else in the block, so the message is printed
+		 * regardless of the filter. It carries their "Here" link, which opens the modal — the
+		 * only remaining way to choose a gift if the inline picker could not be rendered.
+		 * Suppressing it here would leave an empty box and no route to the offer at all.
+		 */
+		if ( '' === $picker ) {
+			$show_message = true;
+		}
+
 		return sprintf(
-			'<div class="beeoch-opc-gift__inner">
-				<span class="beeoch-opc-gift__icon" aria-hidden="true">
+			'<div class="beeoch-opc-gift__inner">%s%s</div>',
+			$show_message ? sprintf(
+				'<span class="beeoch-opc-gift__icon" aria-hidden="true">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" focusable="false"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
 				</span>
-				<div class="beeoch-opc-gift__body">
-					<p class="beeoch-opc-gift__message">%s</p>
-					%s
-				</div>
-			</div>',
-			$message, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-generated, already escaped by its author.
+				<div class="beeoch-opc-gift__body"><p class="beeoch-opc-gift__message">%s</p></div>',
+				$message // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- plugin-generated, already escaped by its author.
+			) : '',
 			'' === $picker ? '' : sprintf( '<div class="beeoch-opc-gift__picker">%s</div>', $picker ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		);
 	}
