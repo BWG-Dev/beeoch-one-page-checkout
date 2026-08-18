@@ -2144,3 +2144,80 @@
 		opacity: 0.75;
 	}
 }
+
+/* --------------------------------------------------------------------------
+ * 39. Line item: thumbnail beside the product name
+ *
+ * `ItemName` wraps the name as:
+ *
+ *   <span class="beeoch-opc-item">
+ *     <a class="beeoch-opc-item__media"><img></a>
+ *     <span class="beeoch-opc-item__text"><a class="beeoch-opc-item__link">Name</a></span>
+ *   </span>
+ *
+ * The wrapper holds the image and the title only. The variation list and the quantity stepper
+ * are siblings of it inside the same cell, printed separately by the template, so they sit
+ * BELOW this row at full width rather than being indented past the thumbnail.
+ *
+ * That is a deliberate choice, not a limitation worked around. Indenting them would mean
+ * turning the cell into a grid — and the template emits a bare `&nbsp;` between the name and
+ * the quantity, which becomes an anonymous grid item and lands in an arbitrary cell. A row
+ * that is predictable everywhere beats one that is prettier until a stray text node moves.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+	text-align: left;
+}
+
+.beeoch-opc-active .beeoch-opc-item__media {
+	flex: 0 0 auto;
+	width: 3.25rem;
+	line-height: 0;
+	border-radius: 6px;
+	overflow: hidden;
+	text-decoration: none;
+}
+
+/*
+ * WooCommerce ships a responsive image with srcset, so width alone would let it pick a size
+ * for a box it is not in. Both dimensions are pinned and the aspect ratio is squared off, so
+ * every row is the same height whatever shape the original photograph is.
+ */
+.beeoch-opc-active .beeoch-opc-item__media img {
+	display: block;
+	width: 3.25rem;
+	height: 3.25rem;
+	max-width: none;
+	object-fit: cover;
+	margin: 0;
+	border-radius: 6px;
+}
+
+.beeoch-opc-active .beeoch-opc-item__text {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/*
+ * The title reads as the product name, not as a link — underlined only on hover and focus.
+ * A row of permanently underlined titles in an order summary reads as clutter, but removing
+ * the affordance entirely would hide that they are clickable at all.
+ */
+.beeoch-opc-active .beeoch-opc-item__link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.beeoch-opc-active .beeoch-opc-item__link:hover,
+.beeoch-opc-active .beeoch-opc-item__link:focus-visible {
+	text-decoration: underline;
+}
+
+/* A line with no image keeps its text aligned with the rows that have one. */
+.beeoch-opc-active .beeoch-opc-item:not( :has( .beeoch-opc-item__media ) ) .beeoch-opc-item__text {
+	padding-left: 0;
+}
