@@ -2608,3 +2608,71 @@
 	font-size: 15px;
 	line-height: 1.4;
 }
+
+/* --------------------------------------------------------------------------
+ * 47. Fixed-quantity lines, and the gift slides on a narrow screen
+ *
+ * A line that may be removed but not re-counted (a free gift) now renders the remove control
+ * on its own. It needs none of the stepper's chrome, only the same alignment.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty--fixed {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+@media ( max-width: 1024px ) {
+
+	/*
+	 * Slides were reading as a horizontal stack with the text jumping line to line, because
+	 * each slide is only as tall as its own content: a one-line title sits beside a three-line
+	 * one and nothing lines up. owl gives every slide the same WIDTH but never the same height.
+	 *
+	 * Making the slide a full-height column fixes the alignment, and clamping the title to two
+	 * lines is what stops the heights diverging in the first place.
+	 */
+	.beeoch-opc-active .beeoch-opc-gift .owl-stage {
+		display: flex;
+		align-items: stretch;
+	}
+
+	.beeoch-opc-active .beeoch-opc-gift .owl-item {
+		display: flex;
+		float: none;
+	}
+
+	.beeoch-opc-active .beeoch-opc-gift .wgb-product-item-cnt {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		height: 100%;
+		text-align: center;
+	}
+
+	/* Two lines, then ellipsis — the full name is still on the product page. */
+	.beeoch-opc-active .beeoch-opc-gift .wgb-item-title {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		min-height: 2.6em;
+		font-size: 0.72rem;
+		line-height: 1.3;
+	}
+
+	/* The button sits on the baseline of every slide, whatever the title did above it. */
+	.beeoch-opc-active .beeoch-opc-gift .wgb-add-gift-btn {
+		margin-top: auto;
+		width: 100%;
+		text-align: center;
+	}
+
+	.beeoch-opc-active .beeoch-opc-gift .wgb-item-thumb img {
+		width: 100%;
+		height: auto;
+		aspect-ratio: 1 / 1;
+		object-fit: cover;
+	}
+}

@@ -86,10 +86,17 @@ class QuantityControl {
 		$verdict = $this->policy->for_item( $cart_item_key, $cart_item );
 
 		/*
-		 * Not editable — bundle children, renewal carts and so on. Return the markup
-		 * exactly as received so those rows are indistinguishable from today.
+		 * Nothing this line permits — bundle children, renewal carts. Return the markup exactly
+		 * as received so those rows are indistinguishable from today.
+		 *
+		 * The two permissions are checked SEPARATELY, and that distinction is the whole point.
+		 * An earlier version returned here whenever the quantity was not editable, which
+		 * silently took the remove button with it: a free gift is deliberately fixed at one —
+		 * `editable_quantity => false` — but is removable, so it rendered with no control at
+		 * all and could not be taken out of the cart from checkout. The policy had always said
+		 * `removable => true`; nothing ever read it.
 		 */
-		if ( ! $verdict['editable_quantity'] ) {
+		if ( ! $verdict['editable_quantity'] && ! $verdict['removable'] ) {
 			return $html;
 		}
 
@@ -124,6 +131,23 @@ class QuantityControl {
 					)
 				),
 				esc_attr__( 'Remove', 'beeoch-opc' )
+			);
+		}
+
+		/*
+		 * A line that may be removed but not re-counted gets the remove control alone. The
+		 * quantity is still shown, by the passthrough markup that came in — for a free gift
+		 * that is "× 1", which is the correct and complete statement of it.
+		 */
+		if ( ! $verdict['editable_quantity'] ) {
+			return sprintf(
+				'<span class="beeoch-opc-qty beeoch-opc-qty--fixed" data-beeoch-opc-key="%1$s" data-state="pending">
+					%2$s
+					<span class="beeoch-opc-qty__passthrough">%3$s</span>
+				</span>',
+				esc_attr( $cart_item_key ),
+				$remove, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built above from escaped parts.
+				$html // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- already-filtered markup from core and other plugins.
 			);
 		}
 
