@@ -289,6 +289,54 @@
 	 * built with the store's own settings — speed, loop, dots, nav, rtl — rather than a second
 	 * copy of that configuration living here and drifting.
 	 */
+	/**
+	 * Add a gift without losing the form.
+	 *
+	 * The gift plugin offers two controls, and only one of them is a problem here:
+	 *
+	 *   "Select Gift"  variable products. A <div> bound with
+	 *                  jQuery(document).on('click', '.btn-select-gift-button') — delegated on
+	 *                  document, so it survives our fragment replacements and opens their
+	 *                  variation modal unaided. Nothing to do.
+	 *
+	 *   "Add Gift"     simple products. A plain <a href="?pw_add_gift=...">, with no JavaScript
+	 *                  bound to it at all. Their handler runs on `wp`, adds the item and calls
+	 *                  wp_safe_redirect() — a full page load.
+	 *
+	 * On a cart page that reload costs nothing. On checkout it discards everything typed into
+	 * the form, which is a bad trade for choosing a free gift. The click is therefore fetched in
+	 * the background instead: the same URL, so their handler does exactly what it always does,
+	 * and the refresh that follows brings the new line, the totals and the eligibility message
+	 * up to date.
+	 *
+	 * The redirect they issue is followed by the browser and its body discarded. That is one
+	 * wasted page render server-side, in exchange for the customer keeping their address.
+	 */
+	$( document.body ).on( 'click', '.beeoch-opc-gift a.wgb-add-gift-btn[href*="pw_add_gift"]', function ( event ) {
+		var $link = $( this );
+		var url = $link.attr( 'href' );
+
+		if ( ! url || $link.hasClass( 'beeoch-opc-busy' ) ) {
+			return;
+		}
+
+		event.preventDefault();
+
+		$link.addClass( 'beeoch-opc-busy' );
+		$( '.beeoch-opc-gift' ).attr( 'data-state', 'busy' );
+
+		$.get( url ).always( function () {
+			$link.removeClass( 'beeoch-opc-busy' );
+
+			/*
+			 * Always, not done: their handler redirects, and a redirect the browser declines to
+			 * follow still means the gift was added. Refreshing regardless is correct — the
+			 * refresh is what tells us the truth either way.
+			 */
+			$( document.body ).trigger( 'update_checkout' );
+		} );
+	} );
+
 	function startCarousel( attempt ) {
 		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
 

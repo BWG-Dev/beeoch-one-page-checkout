@@ -2676,3 +2676,9 @@
 		object-fit: cover;
 	}
 }
+
+/* While a gift is being added the block is inert, so a second click cannot double-add. */
+.beeoch-opc-active .beeoch-opc-gift[data-state="busy"] {
+	opacity: 0.6;
+	pointer-events: none;
+}
