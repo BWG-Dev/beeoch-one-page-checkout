@@ -2498,60 +2498,6 @@
 	min-width: 0;
 }
 
-/*
- * A carousel that never started.
- *
- * owl-carousel adds `.owl-loaded` once it initialises. Until then its slides are ordinary
- * block elements laid end to end at their natural width — which is not a styling problem, it
- * is the thing that was pushing the column out.
- *
- * So the uninitialised state is given a layout of its own: a responsive grid of tiles that
- * fits whatever width it is given. If their script does start the carousel, `.owl-loaded`
- * appears and every rule here stops matching, leaving owl's own inline sizing alone.
- *
- * This is deliberately a fallback rather than a replacement. It means the picker is usable and
- * contained even if owl never loads on this page at all.
- */
-.beeoch-opc-active .beeoch-opc-gift .it-owl-carousel-items:not( .owl-loaded ) {
-	display: grid !important;
-	grid-template-columns: repeat( auto-fill, minmax( 5.5rem, 1fr ) );
-	gap: 0.5rem;
-	width: 100% !important;
-	max-width: 100% !important;
-	overflow: hidden;
-}
-
-.beeoch-opc-active .beeoch-opc-gift .it-owl-carousel-items:not( .owl-loaded ) > * {
-	width: auto !important;
-	max-width: 100% !important;
-	min-width: 0 !important;
-	margin: 0 !important;
-	float: none !important;
-}
-
-.beeoch-opc-active .beeoch-opc-gift .it-owl-carousel-items:not( .owl-loaded ) img {
-	width: 100%;
-	height: auto;
-	display: block;
-}
-
-/*
- * Once owl owns the carousel, containment is the OUTER element's job and only its job.
- *
- * `.owl-stage-outer` is the viewport: clipping there is what turns an 8618px stage into a
- * window the width of the column. The stage and the items inside it must keep the widths owl
- * gave them — capping those is what emptied the box.
- */
-.beeoch-opc-active .beeoch-opc-gift .owl-carousel,
-.beeoch-opc-active .beeoch-opc-gift .owl-stage-outer {
-	max-width: 100%;
-	overflow: hidden;
-}
-
-.beeoch-opc-active .beeoch-opc-gift .owl-stage,
-.beeoch-opc-active .beeoch-opc-gift .owl-item {
-	max-width: none;
-}
 
 /*
  * No height cap and no vertical scrollbar. The earlier `max-height: 22rem; overflow-y: auto`
@@ -2563,31 +2509,6 @@
 	overflow-y: visible;
 }
 
-/* Their heading inside the picker is a page-level h2; it should read as a line of the block. */
-.beeoch-opc-active .beeoch-opc-gift__picker .wgb-title {
-	margin: 0 0 0.5rem;
-	font-size: 0.9rem;
-	line-height: 1.35;
-	font-weight: 600;
-}
-
-/* Slide contents stay legible at column width. */
-.beeoch-opc-active .beeoch-opc-gift .wgb-item-title {
-	margin: 0.35rem 0 0.2rem;
-	font-size: 0.75rem;
-	line-height: 1.3;
-}
-
-.beeoch-opc-active .beeoch-opc-gift .gift-price {
-	font-size: 0.75rem;
-}
-
-.beeoch-opc-active .beeoch-opc-gift .wgb-add-gift-btn {
-	display: inline-block;
-	margin-top: 0.35rem;
-	font-size: 0.75rem;
-	cursor: pointer;
-}
 
 /* --------------------------------------------------------------------------
  * 46. Recurring price on a subscription line
@@ -2610,7 +2531,7 @@
 }
 
 /* --------------------------------------------------------------------------
- * 47. Fixed-quantity lines, and the gift slides on a narrow screen
+ * 47. Fixed-quantity lines
  *
  * A line that may be removed but not re-counted (a free gift) now renders the remove control
  * on its own. It needs none of the stepper's chrome, only the same alignment.
@@ -2622,60 +2543,6 @@
 	gap: 0.4rem;
 }
 
-@media ( max-width: 1024px ) {
-
-	/*
-	 * Slides were reading as a horizontal stack with the text jumping line to line, because
-	 * each slide is only as tall as its own content: a one-line title sits beside a three-line
-	 * one and nothing lines up. owl gives every slide the same WIDTH but never the same height.
-	 *
-	 * Making the slide a full-height column fixes the alignment, and clamping the title to two
-	 * lines is what stops the heights diverging in the first place.
-	 */
-	.beeoch-opc-active .beeoch-opc-gift .owl-stage {
-		display: flex;
-		align-items: stretch;
-	}
-
-	.beeoch-opc-active .beeoch-opc-gift .owl-item {
-		display: flex;
-		float: none;
-	}
-
-	.beeoch-opc-active .beeoch-opc-gift .wgb-product-item-cnt {
-		display: flex;
-		flex-direction: column;
-		width: 100%;
-		height: 100%;
-		text-align: center;
-	}
-
-	/* Two lines, then ellipsis — the full name is still on the product page. */
-	.beeoch-opc-active .beeoch-opc-gift .wgb-item-title {
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-		min-height: 2.6em;
-		font-size: 0.72rem;
-		line-height: 1.3;
-	}
-
-	/* The button sits on the baseline of every slide, whatever the title did above it. */
-	.beeoch-opc-active .beeoch-opc-gift .wgb-add-gift-btn {
-		margin-top: auto;
-		width: 100%;
-		text-align: center;
-	}
-
-	.beeoch-opc-active .beeoch-opc-gift .wgb-item-thumb img {
-		width: 100%;
-		height: auto;
-		aspect-ratio: 1 / 1;
-		object-fit: cover;
-	}
-}
 
 /* While a gift is being added the block is inert, so a second click cannot double-add. */
 .beeoch-opc-active .beeoch-opc-gift[data-state="busy"] {
