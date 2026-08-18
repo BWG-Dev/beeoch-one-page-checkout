@@ -289,12 +289,38 @@
 	 * built with the store's own settings — speed, loop, dots, nav, rtl — rather than a second
 	 * copy of that configuration living here and drifting.
 	 */
-	function startCarousel() {
-		if ( ! $( '.beeoch-opc-gift .it-owl-carousel-items' ).length ) {
+	function startCarousel( attempt ) {
+		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
+
+		if ( ! $items.length ) {
 			return;
 		}
 
+		/*
+		 * Their listener for this event is registered inside their own `jQuery(function(){})`,
+		 * so on first paint it is a race: if our ready handler runs before theirs, the trigger
+		 * lands on nothing and the carousel silently never starts — which is exactly what it
+		 * looked like, slides laid out end to end with no error anywhere.
+		 *
+		 * So the trigger is retried a few times, stopping as soon as owl marks the element
+		 * `.owl-loaded`. Retrying is safe: their handler re-initialises whatever it finds, and
+		 * anything already loaded is filtered out above.
+		 */
 		$( document.body ).trigger( 'it-enhanced-carousel' );
+
+		attempt = attempt || 0;
+
+		if ( attempt < 4 ) {
+			window.setTimeout( function () {
+				startCarousel( attempt + 1 );
+			}, 250 * ( attempt + 1 ) );
+		} else if ( ! $.fn.owlCarousel ) {
+			/*
+			 * owl is not on the page at all. Nothing more to try — §44 lays the slides out as a
+			 * contained grid so the picker still works and cannot resize the checkout.
+			 */
+			$( '.beeoch-opc-gift' ).attr( 'data-carousel', 'unavailable' );
+		}
 	}
 
 	$( document.body ).on( 'change', '.beeoch-opc-plan select, .beeoch-opc-plan input[type="radio"]', function () {

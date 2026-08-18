@@ -2476,3 +2476,76 @@
 .beeoch-opc-active .beeoch-opc-gift #wgb-modal {
 	display: none !important;
 }
+
+/* --------------------------------------------------------------------------
+ * 44. The gift picker cannot resize the checkout, initialised or not
+ *
+ * §43 put `min-width: 0` on `.e-checkout__order_review` and it made no difference, because
+ * that is not the element being sized. Elementor's two checkout columns are
+ * `.e-checkout__column` inside `.e-checkout__container`, and it is the COLUMN that is the flex
+ * or grid item. `min-width: auto` on that is what let an oversized carousel inside the summary
+ * take width from the customer-details column until it was ~250px wide.
+ *
+ * Fixing the actual item is the whole of it. Everything below is belt and braces so that this
+ * cannot come back through some other wide thing a plugin renders into either column.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .e-checkout__column,
+.beeoch-opc-active .e-checkout__column-inner,
+.beeoch-opc-active .e-checkout__column-start,
+.beeoch-opc-active .e-checkout__column-end {
+	min-width: 0;
+}
+
+/*
+ * A carousel that never started.
+ *
+ * owl-carousel adds `.owl-loaded` once it initialises. Until then its slides are ordinary
+ * block elements laid end to end at their natural width — which is not a styling problem, it
+ * is the thing that was pushing the column out.
+ *
+ * So the uninitialised state is given a layout of its own: a responsive grid of tiles that
+ * fits whatever width it is given. If their script does start the carousel, `.owl-loaded`
+ * appears and every rule here stops matching, leaving owl's own inline sizing alone.
+ *
+ * This is deliberately a fallback rather than a replacement. It means the picker is usable and
+ * contained even if owl never loads on this page at all.
+ */
+.beeoch-opc-active .beeoch-opc-gift .it-owl-carousel-items:not( .owl-loaded ) {
+	display: grid !important;
+	grid-template-columns: repeat( auto-fill, minmax( 5.5rem, 1fr ) );
+	gap: 0.5rem;
+	width: 100% !important;
+	max-width: 100% !important;
+	overflow: hidden;
+}
+
+.beeoch-opc-active .beeoch-opc-gift .it-owl-carousel-items:not( .owl-loaded ) > * {
+	width: auto !important;
+	max-width: 100% !important;
+	min-width: 0 !important;
+	margin: 0 !important;
+	float: none !important;
+}
+
+.beeoch-opc-active .beeoch-opc-gift .it-owl-carousel-items:not( .owl-loaded ) img {
+	width: 100%;
+	height: auto;
+	display: block;
+}
+
+/* Once owl owns it, it still may not exceed the block it sits in. */
+.beeoch-opc-active .beeoch-opc-gift .owl-carousel,
+.beeoch-opc-active .beeoch-opc-gift .owl-stage-outer {
+	max-width: 100%;
+	overflow: hidden;
+}
+
+/*
+ * Whatever the picker turns out to contain, it is capped. A tall list scrolls inside the block
+ * rather than pushing the pay button off the screen.
+ */
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	max-height: 22rem;
+	overflow-y: auto;
+}
