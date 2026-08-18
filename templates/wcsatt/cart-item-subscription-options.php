@@ -22,12 +22,34 @@ defined( 'ABSPATH' ) || exit;
 
 $beeoch_id = 'beeoch-opc-plan-' . substr( md5( (string) $cart_item_key ), 0, 8 );
 
+/**
+ * The label shown beside the purchase-option control.
+ *
+ * It was previously `screen-reader-text` — announced but invisible — which left a sighted
+ * customer facing an unlabelled dropdown whose first option happens to read "One-time purchase".
+ * That is guessable, not obvious, and it is the control that decides whether they are agreeing
+ * to a recurring charge. It is worth a word.
+ *
+ * One `<label for>` serves both audiences: making it visible does not change what a screen
+ * reader announces, so nothing is duplicated and nothing is lost.
+ *
+ * @param string $label         Label text.
+ * @param string $cart_item_key Cart item key.
+ */
+$beeoch_label = (string) apply_filters(
+	'beeoch_opc_plan_label',
+	__( 'Purchase option', 'beeoch-opc' ),
+	(string) $cart_item_key
+);
+
 ?>
 <!--beeoch-opc-plan-->
 <span class="beeoch-opc-plan__field <?php echo esc_attr( $classes ); ?>">
-	<label class="screen-reader-text" for="<?php echo esc_attr( $beeoch_id ); ?>">
-		<?php esc_html_e( 'Purchase option', 'beeoch-opc' ); ?>
-	</label>
+	<?php if ( '' !== trim( $beeoch_label ) ) : ?>
+		<label class="beeoch-opc-plan__label" for="<?php echo esc_attr( $beeoch_id ); ?>">
+			<?php echo esc_html( $beeoch_label ); ?>
+		</label>
+	<?php endif; ?>
 	<select
 		id="<?php echo esc_attr( $beeoch_id ); ?>"
 		class="beeoch-opc-plan__select"

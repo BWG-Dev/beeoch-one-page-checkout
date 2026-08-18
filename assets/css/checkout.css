@@ -2549,3 +2549,38 @@
 	opacity: 0.6;
 	pointer-events: none;
 }
+
+/* --------------------------------------------------------------------------
+ * 48. Label beside the purchase-option control
+ *
+ * The label and the dropdown sit on one line and wrap to two when the column is too narrow for
+ * both — `flex-wrap` rather than a breakpoint, because the summary column's width depends on
+ * the theme and the viewport together, and a guess at either would be wrong somewhere.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-plan__field {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.35rem 0.5rem;
+}
+
+.beeoch-opc-active .beeoch-opc-plan__label {
+	flex: 0 0 auto;
+	margin: 0;
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 1.3;
+	opacity: 0.8;
+	cursor: pointer;
+}
+
+/*
+ * The select takes the rest of the line. `min-width: 0` because a flex item will not shrink
+ * below its content by default, and a long plan name would otherwise push the label off.
+ */
+.beeoch-opc-active .beeoch-opc-plan__field .beeoch-opc-plan__select {
+	flex: 1 1 8rem;
+	min-width: 0;
+	width: auto;
+}
