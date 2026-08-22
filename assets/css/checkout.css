@@ -2323,6 +2323,27 @@
 	background-repeat: no-repeat;
 	background-position: right 0.65rem center;
 	background-size: 0.7rem auto;
+
+	/*
+	 * padding-right already reserves room for the arrow; box-sizing makes that padding come out
+	 * of the 100% width instead of adding to it, so the arrow cannot be pushed outside the box.
+	 */
+	box-sizing: border-box;
+
+	/*
+	 * The CLOSED select's own text. A <select> does not wrap its selected value and does not
+	 * add an ellipsis on its own — an option longer than the box is simply cut off flush at the
+	 * edge, with nothing to show there is more. Chrome, Firefox and Safari all render this
+	 * closed-state text as an ordinary inline run, so the standard truncation trio applies to
+	 * it same as any other text.
+	 *
+	 * This does not touch the OPEN dropdown: §41 already sets `white-space: normal` on
+	 * `option`, so the list itself still wraps long labels onto more than one line. Only the
+	 * collapsed control gets ellipsis, which is the one place a hard cut was actually visible.
+	 */
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 .beeoch-opc-active .beeoch-opc-plan__select:focus-visible {
@@ -2558,29 +2579,26 @@
  * the theme and the viewport together, and a guess at either would be wrong somewhere.
  * ----------------------------------------------------------------------- */
 
+/*
+ * Label above, select on its own full-width line below — not side by side.
+ *
+ * They shared one line at first, with the select taking only what was left after the label.
+ * That is exactly backwards for this control: the select's TEXT is the thing that must not be
+ * cut ("$40.50 every 2 months" and similar run long), while the label is a single short word.
+ * Stacking gives the select the whole column width, which is the real fix — the ellipsis added
+ * to the select above is the fallback for when even that is not enough, not the first line of
+ * defence.
+ */
 .beeoch-opc-active .beeoch-opc-plan__field {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 0.35rem 0.5rem;
+	display: block;
 }
 
 .beeoch-opc-active .beeoch-opc-plan__label {
-	flex: 0 0 auto;
-	margin: 0;
+	display: block;
+	margin: 0 0 0.3rem;
 	font-size: 0.78rem;
 	font-weight: 600;
 	line-height: 1.3;
 	opacity: 0.8;
 	cursor: pointer;
-}
-
-/*
- * The select takes the rest of the line. `min-width: 0` because a flex item will not shrink
- * below its content by default, and a long plan name would otherwise push the label off.
- */
-.beeoch-opc-active .beeoch-opc-plan__field .beeoch-opc-plan__select {
-	flex: 1 1 8rem;
-	min-width: 0;
-	width: auto;
 }
