@@ -385,6 +385,54 @@
 		}
 	}
 
+	/**
+	 * On mobile, give the plan control its own full-width row.
+	 *
+	 * `.beeoch-opc-plan` lives inside `td.product-name`, and that cell is capped at
+	 * `var(--opc-name-col)` — 78% of the table — by `table-layout: fixed`, with the rest
+	 * reserved for the price column. No width or `align-self` on a descendant can exceed its
+	 * own containing block, so a child of that cell is hard-limited to 78% of the table no
+	 * matter what it declares; that cap, not alignment, is what was making the select narrow
+	 * once §37's stretch fix ruled the flex-centring theory out.
+	 *
+	 * The stepper is left where it is — it is small by nature and was never the complaint.
+	 * Only the plan control moves, into a new `<td colspan="2">` in a row of its own, which
+	 * table-layout sizes to the FULL table width by construction rather than to either column.
+	 *
+	 * Mobile only, and re-run on every refresh rather than tracked as "already done": the order
+	 * review table is one of WooCommerce's own AJAX fragments and is replaced wholesale on every
+	 * update, server-rendered fresh with `.beeoch-opc-plan` back in its original cell each time.
+	 * There is nothing to preserve between refreshes, only somewhere to redo the move.
+	 */
+	function spanPlanFullWidth() {
+		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
+			return;
+		}
+
+		$( '.beeoch-opc-plan' ).each( function () {
+			var $plan = $( this );
+			var $row = $plan.closest( 'tr' );
+
+			if ( ! $row.length ) {
+				return;
+			}
+
+			/*
+			 * Marks the original row so its own border-bottom can be suppressed in CSS — with
+			 * the plan control moved out, that border would otherwise sit BETWEEN the product
+			 * line and its own plan control, reading as a separator inside one entry rather
+			 * than the boundary at the end of it.
+			 */
+			$row
+				.addClass( 'beeoch-opc-has-plan-row' )
+				.after(
+					$( '<tr/>', { 'class': 'beeoch-opc-plan-row' } ).append(
+						$( '<td/>', { colspan: 2 } ).append( $plan )
+					)
+				);
+		} );
+	}
+
 	function startCarousel( attempt ) {
 		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
 
@@ -468,6 +516,7 @@
 		wrapRows();
 		startCarousel();
 		reorderForMobile();
+		spanPlanFullWidth();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -759,5 +808,6 @@
 		wrapRows();
 		startCarousel();
 		reorderForMobile();
+		spanPlanFullWidth();
 	} );
 } )( jQuery );

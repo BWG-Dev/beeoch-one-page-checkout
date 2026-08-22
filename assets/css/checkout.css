@@ -2049,6 +2049,31 @@
 
 @media ( max-width: 1024px ) {
 
+	/* --------------------------------------------------------------------------
+	 * Plan control's own full-width row
+	 *
+	 * checkout.js's `spanPlanFullWidth()` moves `.beeoch-opc-plan` out of `td.product-name`
+	 * (capped at 78% of the table) into a new `<td colspan="2">` of its own, which
+	 * table-layout: fixed sizes to the full table width by construction.
+	 * ----------------------------------------------------------------------- */
+
+	/*
+	 * The original row's border-bottom is suppressed. Left in place it would sit BETWEEN the
+	 * product line and its own plan control — reading as a separator inside one entry rather
+	 * than the boundary at the end of it. The base th/td rule already gives the new row its own
+	 * border-bottom, which becomes the entry's true bottom edge.
+	 */
+	.beeoch-opc-active tr.beeoch-opc-has-plan-row td,
+	.beeoch-opc-active tr.beeoch-opc-has-plan-row th {
+		border-bottom: 0;
+	}
+
+	.beeoch-opc-active tr.beeoch-opc-plan-row td {
+		padding-top: 0;
+		padding-left: 0.1rem;
+		padding-right: 0.1rem;
+	}
+
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals {
 		display: block;
 		width: 100%;
