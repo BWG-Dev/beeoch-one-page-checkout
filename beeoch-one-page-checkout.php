@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       BEE-OCH One Page Checkout
  * Description:       Merges the Cart experience into Checkout. Orchestration only — all business rules stay with WooCommerce and the existing plugins.
- * Version:           1.36.1
+ * Version:           1.37.0
  * Requires PHP:      8.1
  * Requires at least: 6.5
  * Author:            Web Bennet Group
@@ -18,7 +18,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BEEOCH_OPC_VERSION', '1.36.1' );
+define( 'BEEOCH_OPC_VERSION', '1.37.0' );
 define( 'BEEOCH_OPC_FILE', __FILE__ );
 define( 'BEEOCH_OPC_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BEEOCH_OPC_URL', plugin_dir_url( __FILE__ ) );

@@ -337,6 +337,54 @@
 		} );
 	} );
 
+	/**
+	 * On mobile, put the promotions panel and free-gift block above billing.
+	 *
+	 * Anchored on `#customer_details` — the billing form's own id — rather than on Elementor's
+	 * `.e-checkout__column-start` / `-end` classes. Which of those two columns holds billing and
+	 * which holds the order review is a per-site setting in the checkout widget, not something
+	 * fixed by Elementor's markup; this store's local and staging copies were confirmed to
+	 * differ on exactly that. An id-anchored move works no matter which column billing is
+	 * configured into, so nothing here depends on that setting either way.
+	 *
+	 * The order review table is deliberately left where it is — only the promotions panel and
+	 * the gift block move. Both are inserted directly before the billing form, gift first so the
+	 * pair keeps the same relative order it already has in the order-review column (gift above
+	 * promotions).
+	 *
+	 * Gated to the same `max-width: 1024px` breakpoint the rest of the stylesheet uses for
+	 * "mobile" (§38, §44), so desktop is never touched — this only ever runs below that width.
+	 *
+	 * Safe to call repeatedly: moving an already-correctly-placed element is a no-op. Called on
+	 * first paint and after every refresh because the gift block is an order-review AJAX
+	 * fragment and is replaced wholesale each time; WooCommerce's fragment swap re-inserts the
+	 * new copy at the DOM position of the node it replaced, so once moved it stays moved, but
+	 * this still runs every time in case that node is ever rebuilt from scratch rather than
+	 * replaced in place.
+	 */
+	function reorderForMobile() {
+		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
+			return;
+		}
+
+		var $billing = $( '#customer_details' );
+
+		if ( ! $billing.length ) {
+			return;
+		}
+
+		var $gift = $( '.beeoch-opc-gift' );
+		var $promo = $( '.beeoch-opc-promo' );
+
+		if ( $gift.length ) {
+			$gift.insertBefore( $billing );
+		}
+
+		if ( $promo.length ) {
+			$promo.insertBefore( $billing );
+		}
+	}
+
 	function startCarousel( attempt ) {
 		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
 
@@ -419,6 +467,7 @@
 		gather();
 		wrapRows();
 		startCarousel();
+		reorderForMobile();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -709,5 +758,6 @@
 		gather();
 		wrapRows();
 		startCarousel();
+		reorderForMobile();
 	} );
 } )( jQuery );
