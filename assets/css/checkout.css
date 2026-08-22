@@ -2231,8 +2231,31 @@
  * plugin formats to the store's settings.
  * ----------------------------------------------------------------------- */
 
+/*
+ * `align-self: stretch`, not just `display: block`.
+ *
+ * Staging carries Elementor Custom CSS on `#order_review td.product-name` — the same rule §34
+ * already found and worked around for the quantity stepper — pairing `display: flex;
+ * flex-direction: column` with `align-items: center`. In a COLUMN flex container that pairing
+ * means CENTRE ON THE CROSS AXIS, which for a column is WIDTH: a child with no `align-self` of
+ * its own shrinks to hug its own content and is then centred in the space left over, rather
+ * than filling the row. `display: block` on its own does nothing to stop that — `display` only
+ * matters once an item is actually given room to fill.
+ *
+ * The plan block looked narrow specifically on mobile because that is where the effect is most
+ * visible: the shrunk-to-content width is a much larger fraction of a phone-width column than
+ * of a wide desktop one, which is also why desktop read as fine already. `align-self` is a
+ * per-child override — it always wins over the parent's `align-items` for the element that
+ * sets it, whichever stylesheet the parent's rule came from and regardless of specificity or
+ * `!important` — so this needed no specificity fight, only the property nothing had set yet.
+ *
+ * Harmless if that Custom CSS is ever removed: `align-self` and the extra `width: 100%` do
+ * nothing outside a flex or grid parent, so this is not something to undo alongside it.
+ */
 .beeoch-opc-active .beeoch-opc-plan {
 	display: block;
+	align-self: stretch;
+	width: 100%;
 	margin-top: 0.55rem;
 }
 
