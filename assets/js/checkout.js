@@ -348,13 +348,14 @@
 	 * differ on exactly that. An id-anchored move works no matter which column billing is
 	 * configured into, so nothing here depends on that setting either way.
 	 *
-	 * Everything is inserted directly before the billing form, in this order: gift, promotions,
-	 * the order-review heading, then the order-review table itself — so a customer scrolling down
-	 * meets the free-gift offer first, then any code/credit to apply, then what is actually in
-	 * their cart with room to edit it, and only then billing. The cart table was originally left
-	 * out of this move; the requirement turned out to cover it too — "view and edit their cart
-	 * before entering billing details" — so it now moves along with the rest. Gift's position is
-	 * unchanged from before (it was already correct); only the cart and its heading are new here.
+	 * The four are inserted before billing in the SAME relative order desktop already gives them
+	 * — heading, cart table, gift, promotions — read straight off the `order:` values desktop
+	 * assigns them inside `.e-checkout__order_review` (0, 1, 2, 3 respectively). This is not a
+	 * new order invented for mobile; it is desktop's own ordering, simply relocated as one block
+	 * to sit above billing instead of beside it. An earlier version of this function inserted
+	 * gift and promotions first and the cart last, which put gift ahead of the cart on mobile
+	 * even though desktop has always shown the cart first — worth remembering if "mobile doesn't
+	 * match desktop" comes up again: check the `order:` values here rather than re-guessing.
 	 *
 	 * Gated to the same `max-width: 1024px` breakpoint the rest of the stylesheet uses for
 	 * "mobile" (§38, §44), so desktop is never touched — this only ever runs below that width.
@@ -379,7 +380,7 @@
 
 		// In this order — each insertBefore places its element immediately ahead of billing,
 		// so inserting later in this list is what keeps that item closest to it.
-		[ '.beeoch-opc-gift', '.beeoch-opc-promo', '#order_review_heading', '#order_review' ].forEach(
+		[ '#order_review_heading', '#order_review', '.beeoch-opc-gift', '.beeoch-opc-promo' ].forEach(
 			function ( selector ) {
 				var $el = $( selector );
 
