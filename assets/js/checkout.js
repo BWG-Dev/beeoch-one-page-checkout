@@ -338,7 +338,8 @@
 	} );
 
 	/**
-	 * On mobile, put the promotions panel and free-gift block above billing.
+	 * On mobile, put the whole order-review column — gifts, promotions, and the cart itself —
+	 * above billing.
 	 *
 	 * Anchored on `#customer_details` — the billing form's own id — rather than on Elementor's
 	 * `.e-checkout__column-start` / `-end` classes. Which of those two columns holds billing and
@@ -347,10 +348,13 @@
 	 * differ on exactly that. An id-anchored move works no matter which column billing is
 	 * configured into, so nothing here depends on that setting either way.
 	 *
-	 * The order review table is deliberately left where it is — only the promotions panel and
-	 * the gift block move. Both are inserted directly before the billing form, gift first so the
-	 * pair keeps the same relative order it already has in the order-review column (gift above
-	 * promotions).
+	 * Everything is inserted directly before the billing form, in this order: gift, promotions,
+	 * the order-review heading, then the order-review table itself — so a customer scrolling down
+	 * meets the free-gift offer first, then any code/credit to apply, then what is actually in
+	 * their cart with room to edit it, and only then billing. The cart table was originally left
+	 * out of this move; the requirement turned out to cover it too — "view and edit their cart
+	 * before entering billing details" — so it now moves along with the rest. Gift's position is
+	 * unchanged from before (it was already correct); only the cart and its heading are new here.
 	 *
 	 * Gated to the same `max-width: 1024px` breakpoint the rest of the stylesheet uses for
 	 * "mobile" (§38, §44), so desktop is never touched — this only ever runs below that width.
@@ -359,8 +363,8 @@
 	 * first paint and after every refresh because the gift block is an order-review AJAX
 	 * fragment and is replaced wholesale each time; WooCommerce's fragment swap re-inserts the
 	 * new copy at the DOM position of the node it replaced, so once moved it stays moved, but
-	 * this still runs every time in case that node is ever rebuilt from scratch rather than
-	 * replaced in place.
+	 * this still runs every time in case any of these nodes is ever rebuilt from scratch rather
+	 * than replaced in place.
 	 */
 	function reorderForMobile() {
 		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
@@ -373,16 +377,17 @@
 			return;
 		}
 
-		var $gift = $( '.beeoch-opc-gift' );
-		var $promo = $( '.beeoch-opc-promo' );
+		// In this order — each insertBefore places its element immediately ahead of billing,
+		// so inserting later in this list is what keeps that item closest to it.
+		[ '.beeoch-opc-gift', '.beeoch-opc-promo', '#order_review_heading', '#order_review' ].forEach(
+			function ( selector ) {
+				var $el = $( selector );
 
-		if ( $gift.length ) {
-			$gift.insertBefore( $billing );
-		}
-
-		if ( $promo.length ) {
-			$promo.insertBefore( $billing );
-		}
+				if ( $el.length ) {
+					$el.insertBefore( $billing );
+				}
+			}
+		);
 	}
 
 	/**
