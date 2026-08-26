@@ -2133,7 +2133,7 @@
 }
 
 /* One option per line, radio and label on a single baseline. */
-.beeoch-opc-active [id^="shipping_method"],
+.beeoch-opc-active ul[id^="shipping_method"],
 .beeoch-opc-active ul.woocommerce-shipping-methods {
 	display: grid;
 	gap: 0.45rem;
@@ -2164,7 +2164,7 @@
  * `[id^="shipping_method"]` (to reach the recurring list's `#shipping_method_{scheme}`, which
  * their own hanging-indent rule does not even target) loses nothing.
  */
-.beeoch-opc-active [id^="shipping_method"] > li,
+.beeoch-opc-active ul[id^="shipping_method"] > li,
 .beeoch-opc-active ul.woocommerce-shipping-methods > li {
 	display: flex;
 	align-items: flex-start;
@@ -2176,7 +2176,7 @@
 	text-align: left;
 }
 
-.beeoch-opc-active [id^="shipping_method"] > li input.shipping_method {
+.beeoch-opc-active ul[id^="shipping_method"] > li input.shipping_method {
 	flex: 0 0 auto;
 	margin: 0.2rem 0 0;
 }
@@ -2186,7 +2186,7 @@
  * is left to read as one phrase rather than being split into columns — the amount is not a
  * separate column here.
  */
-.beeoch-opc-active [id^="shipping_method"] > li label,
+.beeoch-opc-active ul[id^="shipping_method"] > li label,
 .beeoch-opc-active ul.woocommerce-shipping-methods > li label {
 	flex: 1 1 auto;
 	margin: 0;
