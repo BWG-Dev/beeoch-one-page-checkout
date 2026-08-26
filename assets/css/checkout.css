@@ -2099,15 +2099,24 @@
  *
  * Only the shipping row is affected. Subtotal, discounts and order total keep the 78/22
  * alignment at every width — they are label/amount pairs, which is what that split is for.
+ *
+ * A subscription in the cart alongside a one-time item adds a SECOND shipping row for the
+ * recurring shipment — WooCommerce Subscriptions' own `tr.shipping.recurring-total` / `<ul
+ * id="shipping_method_{scheme}">`, not core's `tr.woocommerce-shipping-totals` / `#shipping_method
+ * .woocommerce-shipping-methods`. Neither of those two classes is present on the recurring
+ * version, and its `<ul>` has no class at all — only the shared `shipping` class on the row and
+ * the shared `shipping_method` ID *prefix* on the list survive across both. Selectors below key
+ * on those two instead, so one rule now covers "Initial Shipment" and every recurring shipping
+ * row a cart's subscription schemes produce, rather than only the first.
  * ----------------------------------------------------------------------- */
 
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals {
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping {
 	display: block;
 	width: 100%;
 }
 
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th,
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > th,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td {
 	display: block;
 	width: auto;
 	max-width: none;
@@ -2115,16 +2124,16 @@
 }
 
 /* The label is a heading for the options under it, not half of a label/amount pair. */
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th {
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > th {
 	padding-bottom: 0.3rem;
 }
 
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td {
 	padding-top: 0;
 }
 
 /* One option per line, radio and label on a single baseline. */
-.beeoch-opc-active #shipping_method,
+.beeoch-opc-active [id^="shipping_method"],
 .beeoch-opc-active ul.woocommerce-shipping-methods {
 	display: grid;
 	gap: 0.45rem;
@@ -2149,11 +2158,13 @@
  * inheritance is the overlap; resetting the padding alone would not have fixed it.
  *
  * `!important` rather than a more specific selector: their selector carries `#shipping_method`
- * plus another ID inside the `:not()`, and no number of classes outranks an ID. Their
- * declarations are not important, so ours win — the one case where `!important` is the
- * correct instrument rather than a shortcut.
+ * plus another ID inside the `:not()`, and no number of classes — or an attribute selector —
+ * outranks an ID. Their declarations are not important, so ours win regardless; `!important`
+ * is what actually does the overriding here, which is also why switching the ID match to
+ * `[id^="shipping_method"]` (to reach the recurring list's `#shipping_method_{scheme}`, which
+ * their own hanging-indent rule does not even target) loses nothing.
  */
-.beeoch-opc-active #shipping_method > li,
+.beeoch-opc-active [id^="shipping_method"] > li,
 .beeoch-opc-active ul.woocommerce-shipping-methods > li {
 	display: flex;
 	align-items: flex-start;
@@ -2165,7 +2176,7 @@
 	text-align: left;
 }
 
-.beeoch-opc-active #shipping_method > li input.shipping_method {
+.beeoch-opc-active [id^="shipping_method"] > li input.shipping_method {
 	flex: 0 0 auto;
 	margin: 0.2rem 0 0;
 }
@@ -2175,7 +2186,7 @@
  * is left to read as one phrase rather than being split into columns — the amount is not a
  * separate column here.
  */
-.beeoch-opc-active #shipping_method > li label,
+.beeoch-opc-active [id^="shipping_method"] > li label,
 .beeoch-opc-active ul.woocommerce-shipping-methods > li label {
 	flex: 1 1 auto;
 	margin: 0;
