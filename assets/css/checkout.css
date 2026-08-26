@@ -1526,6 +1526,32 @@
 	}
 }
 
+/* --------------------------------------------------------------------------
+ * 24b. Order review on the left, billing on the right
+ *
+ * Which of Elementor's two grid columns (`-start` / `-end`) holds billing is a per-site
+ * checkout-widget setting, not something fixed by the markup — confirmed different between
+ * this store's local, staging and production copies. `:has()` finds the column that actually
+ * contains `#customer_details` and reorders it last, whichever class it turns out to be, so
+ * this is correct regardless of that setting.
+ *
+ * Done in CSS rather than by setting `order` from JavaScript (the first version of this):
+ * JavaScript cannot act before `$(document).ready()`, so the page painted in Elementor's
+ * original column order for however long the page took to reach ready — up to a couple of
+ * seconds on a heavy Elementor page — and then visibly jumped. A CSS rule applies during the
+ * browser's own layout pass, before anything is painted, so there is nothing to jump.
+ * ----------------------------------------------------------------------- */
+
+@media ( min-width: 1025px ) {
+	.beeoch-opc-active .e-checkout__container:has( .e-checkout__column-start #customer_details ) .e-checkout__column-start {
+		order: 2;
+	}
+
+	.beeoch-opc-active .e-checkout__container:has( .e-checkout__column-start #customer_details ) .e-checkout__column-end {
+		order: 1;
+	}
+}
+
 /* With more room available, keep the totals column tight so the name takes the surplus. */
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table th.product-total,
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table td.product-total {
@@ -2053,7 +2079,7 @@
 }
 
 /* --------------------------------------------------------------------------
- * 38. Shipping options get the full width — MOBILE ONLY
+ * 38. Shipping options get the full width
  *
  * §26 sets `table-layout: fixed` with a 78/22 split, which is right for product rows: the name
  * needs the room, the price needs almost none. But columns in a fixed-layout table belong to
@@ -2065,25 +2091,123 @@
  * altogether: row and cells become blocks, the label sits on its own line, and the options take
  * the full width beneath it.
  *
- * Scoped to `max-width: 1024px` because the desktop layout is not to be touched. 1024 is the
- * complement of the `min-width: 1025px` used by §7 and §25, so the two never overlap and there
- * is one breakpoint in this file rather than two. If "mobile" is meant to exclude tablets,
- * 767px is the other sensible value and only this one line needs changing.
+ * Originally scoped to `max-width: 1024px` on the reasoning that "the desktop layout is not to
+ * be touched" — true when that line was written, but the 78/22 split is unconditional (§26 has
+ * no media query of its own), so the identical squeeze exists at every width, desktop included,
+ * and simply went unnoticed there until the order-review column was moved (§24b). Un-scoped here
+ * so both get the same fix, by the same rule, rather than a duplicated desktop-only copy.
  *
  * Only the shipping row is affected. Subtotal, discounts and order total keep the 78/22
  * alignment at every width — they are label/amount pairs, which is what that split is for.
  * ----------------------------------------------------------------------- */
 
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals {
+	display: block;
+	width: 100%;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
+	display: block;
+	width: auto;
+	max-width: none;
+	text-align: left;
+}
+
+/* The label is a heading for the options under it, not half of a label/amount pair. */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th {
+	padding-bottom: 0.3rem;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
+	padding-top: 0;
+}
+
+/* One option per line, radio and label on a single baseline. */
+.beeoch-opc-active #shipping_method,
+.beeoch-opc-active ul.woocommerce-shipping-methods {
+	display: grid;
+	gap: 0.45rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/*
+ * WooCommerce gives each option a hanging indent:
+ *
+ *   ul#shipping_method li:not(.elementor-widget-woocommerce-cart #shipping_method li) {
+ *       padding: 0.25em 0 0.25em 22px;
+ *       text-indent: -22px;
+ *   }
+ *
+ * That pairs a 22px left padding with a matching negative indent so a radio sitting INLINE
+ * in the text flow hangs in the gutter and wrapped lines align under the label. Making the
+ * item a flex container breaks both halves of that bargain: the padding becomes dead space
+ * on the left, and the negative indent — inherited by the label, since `text-indent`
+ * inherits — drags the label's first line 22px left, directly underneath the radio. That
+ * inheritance is the overlap; resetting the padding alone would not have fixed it.
+ *
+ * `!important` rather than a more specific selector: their selector carries `#shipping_method`
+ * plus another ID inside the `:not()`, and no number of classes outranks an ID. Their
+ * declarations are not important, so ours win — the one case where `!important` is the
+ * correct instrument rather than a shortcut.
+ */
+.beeoch-opc-active #shipping_method > li,
+.beeoch-opc-active ul.woocommerce-shipping-methods > li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.55rem;
+	margin: 0 !important;
+	padding: 0.25rem 0 !important;
+	text-indent: 0 !important;
+	list-style: none;
+	text-align: left;
+}
+
+.beeoch-opc-active #shipping_method > li input.shipping_method {
+	flex: 0 0 auto;
+	margin: 0.2rem 0 0;
+}
+
+/*
+ * The label carries the method name and its cost as one phrase ("Flat rate: $9.95"), so it
+ * is left to read as one phrase rather than being split into columns — the amount is not a
+ * separate column here.
+ */
+.beeoch-opc-active #shipping_method > li label,
+.beeoch-opc-active ul.woocommerce-shipping-methods > li label {
+	flex: 1 1 auto;
+	margin: 0;
+	/* Belt and braces against the inherited negative indent reset on the item above. */
+	text-indent: 0 !important;
+	padding-left: 0 !important;
+	line-height: 1.4;
+	cursor: pointer;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+/* "Shipping to …" is supporting detail, not an option. */
+.beeoch-opc-active .woocommerce-shipping-destination {
+	margin: 0.5rem 0 0;
+	font-size: 0.82rem;
+	line-height: 1.4;
+	opacity: 0.75;
+}
+
+/* --------------------------------------------------------------------------
+ * 38b. Plan control's own full-width row — MOBILE ONLY
+ *
+ * checkout.js's `spanPlanFullWidth()` moves `.beeoch-opc-plan` out of `td.product-name`
+ * (capped at 78% of the table) into a new `<td colspan="2">` of its own, which
+ * table-layout: fixed sizes to the full table width by construction. Unlike §38, this one
+ * stays mobile-only: the plan control's own cell is not cramped on desktop, where the 50/50
+ * column split (§24) leaves it plenty of room — this was always specifically a narrow-viewport
+ * complaint (see checkout.js).
+ * ----------------------------------------------------------------------- */
+
 @media ( max-width: 1024px ) {
-
-	/* --------------------------------------------------------------------------
-	 * Plan control's own full-width row
-	 *
-	 * checkout.js's `spanPlanFullWidth()` moves `.beeoch-opc-plan` out of `td.product-name`
-	 * (capped at 78% of the table) into a new `<td colspan="2">` of its own, which
-	 * table-layout: fixed sizes to the full table width by construction.
-	 * ----------------------------------------------------------------------- */
-
 	/*
 	 * The original row's border-bottom is suppressed. Left in place it would sit BETWEEN the
 	 * product line and its own plan control — reading as a separator inside one entry rather
@@ -2099,101 +2223,6 @@
 		padding-top: 0;
 		padding-left: 0.1rem;
 		padding-right: 0.1rem;
-	}
-
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals {
-		display: block;
-		width: 100%;
-	}
-
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
-		display: block;
-		width: auto;
-		max-width: none;
-		text-align: left;
-	}
-
-	/* The label is a heading for the options under it, not half of a label/amount pair. */
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > th {
-		padding-bottom: 0.3rem;
-	}
-
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.woocommerce-shipping-totals > td {
-		padding-top: 0;
-	}
-
-	/* One option per line, radio and label on a single baseline. */
-	.beeoch-opc-active #shipping_method,
-	.beeoch-opc-active ul.woocommerce-shipping-methods {
-		display: grid;
-		gap: 0.45rem;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	/*
-	 * WooCommerce gives each option a hanging indent:
-	 *
-	 *   ul#shipping_method li:not(.elementor-widget-woocommerce-cart #shipping_method li) {
-	 *       padding: 0.25em 0 0.25em 22px;
-	 *       text-indent: -22px;
-	 *   }
-	 *
-	 * That pairs a 22px left padding with a matching negative indent so a radio sitting INLINE
-	 * in the text flow hangs in the gutter and wrapped lines align under the label. Making the
-	 * item a flex container breaks both halves of that bargain: the padding becomes dead space
-	 * on the left, and the negative indent — inherited by the label, since `text-indent`
-	 * inherits — drags the label's first line 22px left, directly underneath the radio. That
-	 * inheritance is the overlap; resetting the padding alone would not have fixed it.
-	 *
-	 * `!important` rather than a more specific selector: their selector carries `#shipping_method`
-	 * plus another ID inside the `:not()`, and no number of classes outranks an ID. Their
-	 * declarations are not important, so ours win — the one case where `!important` is the
-	 * correct instrument rather than a shortcut.
-	 */
-	.beeoch-opc-active #shipping_method > li,
-	.beeoch-opc-active ul.woocommerce-shipping-methods > li {
-		display: flex;
-		align-items: flex-start;
-		gap: 0.55rem;
-		margin: 0 !important;
-		padding: 0.25rem 0 !important;
-		text-indent: 0 !important;
-		list-style: none;
-		text-align: left;
-	}
-
-	.beeoch-opc-active #shipping_method > li input.shipping_method {
-		flex: 0 0 auto;
-		margin: 0.2rem 0 0;
-	}
-
-	/*
-	 * The label carries the method name and its cost as one phrase ("Flat rate: $9.95"), so it
-	 * is left to read as one phrase rather than being split into columns — the amount is not a
-	 * separate column here.
-	 */
-	.beeoch-opc-active #shipping_method > li label,
-	.beeoch-opc-active ul.woocommerce-shipping-methods > li label {
-		flex: 1 1 auto;
-		margin: 0;
-		/* Belt and braces against the inherited negative indent reset on the item above. */
-		text-indent: 0 !important;
-		padding-left: 0 !important;
-		line-height: 1.4;
-		cursor: pointer;
-		white-space: normal;
-		overflow-wrap: anywhere;
-	}
-
-	/* "Shipping to …" is supporting detail, not an option. */
-	.beeoch-opc-active .woocommerce-shipping-destination {
-		margin: 0.5rem 0 0;
-		font-size: 0.82rem;
-		line-height: 1.4;
-		opacity: 0.75;
 	}
 }
 

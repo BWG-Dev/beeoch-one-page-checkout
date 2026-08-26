@@ -439,44 +439,6 @@
 		} );
 	}
 
-	/**
-	 * On desktop, put the order-review column on the left and billing on the right.
-	 *
-	 * Elementor's two-column grid holds billing in whichever of `.e-checkout__column-start` /
-	 * `-end` its per-site checkout-widget setting assigns it to — confirmed different between
-	 * this store's local and staging copies (see the equivalent note on `reorderForMobile()`),
-	 * and production was found to currently put billing in `-start` (left) with the order
-	 * review in `-end` (right). Requirement is the opposite: order review left, billing right.
-	 *
-	 * Rather than hard-coding either class to a side — which would only be correct on whichever
-	 * site happens to match today's production layout — this finds the column that actually
-	 * contains `#customer_details` and orders it last, whichever class it turns out to be. Both
-	 * columns are grid items with `order: 0` (auto-placed, not explicitly positioned; verified
-	 * on the live checkout), so the CSS `order` property alone repositions them.
-	 *
-	 * Gated to `min-width: 1025px` — the breakpoint already used for the two-column grid itself
-	 * (§24) — so mobile, which stacks everything in one column via `reorderForMobile()`, is
-	 * untouched.
-	 */
-	function swapColumnsForDesktop() {
-		if ( ! window.matchMedia( '(min-width: 1025px)' ).matches ) {
-			return;
-		}
-
-		var $start = $( '.e-checkout__column-start' );
-		var $end = $( '.e-checkout__column-end' );
-
-		if ( ! $start.length || ! $end.length ) {
-			return;
-		}
-
-		var $billing = $start.find( '#customer_details' ).length ? $start : $end;
-		var $summary = $billing.is( $start ) ? $end : $start;
-
-		$billing.css( 'order', 2 );
-		$summary.css( 'order', 1 );
-	}
-
 	function startCarousel( attempt ) {
 		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
 
@@ -561,7 +523,6 @@
 		startCarousel();
 		reorderForMobile();
 		spanPlanFullWidth();
-		swapColumnsForDesktop();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -854,6 +815,5 @@
 		startCarousel();
 		reorderForMobile();
 		spanPlanFullWidth();
-		swapColumnsForDesktop();
 	} );
 } )( jQuery );
