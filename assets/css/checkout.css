@@ -1871,9 +1871,13 @@
 	border: 0 !important;
 }
 
-/* The row draws one continuous rule. */
+/*
+ * The row draws one continuous rule — thead and tfoot only. Cart item rows (tbody) were
+ * dropped from this list at the owner's request: the §31 fallback shadow on tbody cells is
+ * already zeroed, so removing tbody here is enough on its own to leave those rows with no
+ * separator at all.
+ */
 .beeoch-opc-active table.woocommerce-checkout-review-order-table thead tr,
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr,
 .beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr {
 	border-bottom: 1px solid var( --opc-rule-soft ) !important;
 }
