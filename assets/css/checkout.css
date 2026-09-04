@@ -2717,3 +2717,32 @@
 	opacity: 0.8;
 	cursor: pointer;
 }
+
+/* --------------------------------------------------------------------------
+ * 49. Free-shipping bar, standalone above the order review
+ *
+ * Rendered by `FreeShipping`, a direct child of `.e-checkout__order_review` like the gift
+ * call-out and the promotions panel (§21, §42), so the same flex container carries it. Given
+ * `order: -1` to sit before both `#order_review_heading` (order 0) and `#order_review` itself
+ * (order 1) — "above the order review" is what was asked for, not just above the promotions.
+ *
+ * The notice markup is WooCommerce's own `.woocommerce-info` template, built via
+ * `wc_print_notice()` — no restyling of its content, only the wrapper's position and spacing.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-shipping-bar {
+	order: -1;
+}
+
+/* No offer to show, no box — but the element stays in the DOM for the next fragment swap. */
+.beeoch-opc-active .beeoch-opc-shipping-bar:empty {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-shipping-bar {
+	margin-bottom: var( --opc-gap );
+}
+
+.beeoch-opc-active .beeoch-opc-shipping-bar .woocommerce-info {
+	margin: 0;
+}

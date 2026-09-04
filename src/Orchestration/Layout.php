@@ -14,6 +14,7 @@ use Beeoch\OPC\Cart\MutationHandler;
 use Beeoch\OPC\Cart\Mutations;
 use Beeoch\OPC\Cart\SchemeUpdate;
 use Beeoch\OPC\Render\FreeGift;
+use Beeoch\OPC\Render\FreeShipping;
 use Beeoch\OPC\Render\ItemName;
 use Beeoch\OPC\Render\Promotions;
 use Beeoch\OPC\Render\QuantityControl;
@@ -52,6 +53,7 @@ class Layout {
 		( new ItemName() )->register();
 		( new QuantityControl( $this->policy ) )->register();
 		( new SubscriptionOptions() )->register();
+		( new FreeShipping() )->register();
 		( new FreeGift() )->register();
 		( new Promotions() )->register();
 		( new MutationHandler( new Mutations( $this->policy ) ) )->register();
