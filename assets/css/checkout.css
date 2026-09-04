@@ -2764,3 +2764,32 @@
 .beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr th {
 	padding-bottom: 20px !important;
 }
+
+/* --------------------------------------------------------------------------
+ * 51. Free-shipping bar icon
+ *
+ * Astra's `.woocommerce-info::before` draws an icon-font glyph (`content: "\e028"` in the
+ * `WooCommerce` icon font). Where that font doesn't load in this context the glyph falls back
+ * to the browser's missing-glyph box — the "default square" the store wanted replaced.
+ *
+ * Swapped for the store's own SVG, scoped to this bar only (`.beeoch-opc-shipping-bar
+ * .woocommerce-info`) so every other WooCommerce notice on the site keeps its own default icon
+ * untouched. Applied as a mask rather than a background image so the icon always matches the
+ * notice's own text colour (`currentColor`) instead of carrying a fixed one of its own; `top`,
+ * `left`, `position` and `display` are left to Astra's own rule, since only the glyph itself is
+ * being replaced.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-shipping-bar .woocommerce-info::before {
+	content: '' !important;
+	width: 1.3em;
+	height: 1.3em;
+	top: 0.9em;
+	background-color: currentColor;
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40.029 40.029'%3E%3Cpath d='M34.408,10.246L23.48,10.367l-5.359,9.527l5.572,9.402l10.928-0.123l5.359-9.525L34.408,10.246z M33.661,27.551l-9.043,0.104l-4.61-7.781l4.434-7.883l9.043-0.102l4.609,7.779L33.661,27.551z'/%3E%3Cpath d='M16.549,18.932l5.357-9.527L16.334,0L5.406,0.125L0.049,9.65l5.57,9.402L16.549,18.932z M6.365,1.746l9.047-0.102l4.607,7.781l-4.432,7.883l-9.044,0.104L1.936,9.629L6.365,1.746z'/%3E%3Cpath d='M5.644,21.098l-5.358,9.525l5.57,9.406l10.93-0.123l5.357-9.527l-5.571-9.406L5.644,21.098z M15.823,38.283l-9.044,0.104L2.17,30.602l4.433-7.881l9.046-0.105l4.607,7.783L15.823,38.283z'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40.029 40.029'%3E%3Cpath d='M34.408,10.246L23.48,10.367l-5.359,9.527l5.572,9.402l10.928-0.123l5.359-9.525L34.408,10.246z M33.661,27.551l-9.043,0.104l-4.61-7.781l4.434-7.883l9.043-0.102l4.609,7.779L33.661,27.551z'/%3E%3Cpath d='M16.549,18.932l5.357-9.527L16.334,0L5.406,0.125L0.049,9.65l5.57,9.402L16.549,18.932z M6.365,1.746l9.047-0.102l4.607,7.781l-4.432,7.883l-9.044,0.104L1.936,9.629L6.365,1.746z'/%3E%3Cpath d='M5.644,21.098l-5.358,9.525l5.57,9.406l10.93-0.123l5.357-9.527l-5.571-9.406L5.644,21.098z M15.823,38.283l-9.044,0.104L2.17,30.602l4.433-7.881l9.046-0.105l4.607,7.783L15.823,38.283z'/%3E%3C/svg%3E");
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+}
