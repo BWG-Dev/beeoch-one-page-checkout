@@ -411,17 +411,36 @@
 	outline-offset: -2px;
 }
 
+/*
+ * No border here. This dates from when the panel was itself a <details> and the body needed a
+ * rule separating it from its summary. That summary is gone (Promotions::render renders a plain
+ * container), and §21 now draws the line above the first row instead — so a border here stacked
+ * with that one and put two rules 1px apart at the top of the panel.
+ *
+ * The padding is zeroed in §21 as well; it is left out rather than declared and immediately
+ * overridden.
+ */
 .beeoch-opc-active .beeoch-opc-promo__body {
-	border-top: 1px solid rgba( 128, 128, 128, 0.26 );
-	padding: clamp( 0.9rem, 1.6vw, 1.25rem );
+	padding: 0;
 }
 
-/* Each relocated block keeps its own markup; we only space them apart. */
-.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item {
-	margin-top: 1em;
-	padding-top: 1em;
-	border-top: 1px solid rgba( 128, 128, 128, 0.18 );
-}
+/*
+ * The generic separator between blocks is GONE — every row now draws its own.
+ *
+ * It used to read:
+ *
+ *   .beeoch-opc-promo__item + .beeoch-opc-promo__item {
+ *       margin-top: 1em; padding-top: 1em; border-top: 1px solid …;
+ *   }
+ *
+ * That predates the rows being uniform. Now that each row is a `.beeoch-opc-acc` carrying its
+ * own `border-top`, this drew a SECOND line and added a 1em gap on top of it — which is why
+ * §11 existed to cancel it for the points row specifically, and therefore why the rewards row
+ * looked unlike its neighbours. Removing it makes all four identical with no special cases.
+ *
+ * §11 predicted exactly this: "once points is converted to the same <details> row, the generic
+ * separator can go entirely and every row will carry its own." All four are now such rows.
+ */
 
 /*
  * Plugin blocks often ship their own outer margin intended for a standalone position on
@@ -460,12 +479,11 @@
 	width: auto;
 }
 
-.beeoch-opc-active .beeoch-opc-promo__item--gathered + .beeoch-opc-promo__item--gathered,
-.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item--gathered {
-	margin-top: 1em;
-	padding-top: 1em;
-	border-top: 1px solid rgba( 128, 128, 128, 0.18 );
-}
+/*
+ * The gathered variant of the same separator is gone for the same reason. A gathered block now
+ * lands inside a server-rendered row (Promotions::render_slot) whose `.beeoch-opc-acc` already
+ * draws the line, so this only ever added a duplicate.
+ */
 
 /* Elementor's coupon box sets its own width and section padding for a full-row position. */
 .beeoch-opc-active .beeoch-opc-promo__item--gathered.e-coupon-box {
@@ -493,12 +511,31 @@
  * `display: none` inline, the content stays visible inside our row.
  * ----------------------------------------------------------------------- */
 
-.beeoch-opc-active .beeoch-opc-acc {
-	border-top: 1px solid var( --opc-rule-soft );
+/*
+ * Spacing lives on `.beeoch-opc-promo__item`, not `.beeoch-opc-acc` itself — a slotted row
+ * (coupon, gift card) zeroes `.beeoch-opc-acc`'s own margin at §36 so its reserved space is
+ * exact, and a margin set here would be overridden there for those two rows only, breaking
+ * the gap on two of the four pink pills but not the other two.
+ */
+.beeoch-opc-active .beeoch-opc-promo__item {
+	margin-top: 0.6rem;
 }
 
-.beeoch-opc-active .beeoch-opc-promo__item:first-child .beeoch-opc-acc {
-	border-top: 0;
+.beeoch-opc-active .beeoch-opc-promo__item:first-child {
+	margin-top: 0;
+}
+
+/*
+ * Pink "tab" treatment, matched to the live site's own Pollen Points / store credit / coupon
+ * / gift-card headers (bee-och.com/checkout). Those get their gradient from theme CSS keyed
+ * to each plugin's original `h3` selector (e.g. `.wpgens-accordion > h3`); our head is a
+ * `<summary>` wrapping a nested `h3.beeoch-opc-acc__title`, so that selector never matches
+ * here and the row rendered plain. Restated explicitly per client request — the one deliberate
+ * exception to this file's "no colour invented" rule, same precedent as `--opc-primary` below.
+ */
+.beeoch-opc-active {
+	--opc-promo-head-start: #fff3f9;
+	--opc-promo-head-end: #ffe8f3;
 }
 
 .beeoch-opc-active .beeoch-opc-acc__head {
@@ -512,6 +549,9 @@
 	cursor: pointer;
 	font-weight: 600;
 	user-select: none;
+	background: linear-gradient( 135deg, var( --opc-promo-head-start ) 0%, var( --opc-promo-head-end ) 100% );
+	border-radius: var( --opc-radius );
+	box-shadow: inset 0 -1px 0 0 rgba( 255, 255, 255, 0.7 ), 0 2px 4px 0 rgba( 0, 0, 0, 0.06 );
 }
 
 /* Both are needed: WebKit uses the pseudo-element, others honour list-style. */
@@ -520,7 +560,7 @@
 }
 
 .beeoch-opc-active .beeoch-opc-acc__head:hover {
-	background: rgba( 128, 128, 128, 0.06 );
+	filter: brightness( 0.98 );
 }
 
 .beeoch-opc-active .beeoch-opc-acc__head:focus-visible {
@@ -531,14 +571,19 @@
 .beeoch-opc-active .beeoch-opc-acc__icon {
 	flex: 0 0 auto;
 	display: inline-flex;
-	width: 1.15em;
-	height: 1.15em;
-	opacity: 0.7;
+	align-items: center;
+	justify-content: center;
+	width: 1.85rem;
+	height: 1.85rem;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 2px 0 rgba( 0, 0, 0, 0.1 );
+	opacity: 1;
 }
 
 .beeoch-opc-active .beeoch-opc-acc__icon svg {
-	width: 100%;
-	height: 100%;
+	width: 55%;
+	height: 55%;
 	display: block;
 }
 
@@ -713,29 +758,19 @@
 }
 
 /* --------------------------------------------------------------------------
- * 11. Points row — drop the inherited separator
+ * 11. Retired — the points row no longer needs a special case
  *
- * The generic `.beeoch-opc-promo__item + .beeoch-opc-promo__item` rule draws a rule and adds
- * spacing between blocks. The store-credit row now supplies its own separator through
- * `.beeoch-opc-acc`, so the two stack up and the points block gets a doubled line.
+ * This section cancelled the generic `.item + .item` separator for the points row alone,
+ * because that separator doubled up with the row's own `.beeoch-opc-acc` border. It was always
+ * marked transitional, pending every block becoming a <details> row.
  *
- * This is transitional: once points is converted to the same <details> row, the generic
- * separator can go entirely and every row will carry its own.
+ * That is now the case, the generic separator has been deleted at its source, and so this
+ * override has nothing left to override. Keeping it would have made points the one row that
+ * suppresses its own border — the inverse of the bug it was written to fix.
+ *
+ * Nothing replaces it. Every row draws one border from `.beeoch-opc-acc`, the first is
+ * suppressed by `:first-child`, and the panel supplies the rule above the first row.
  * ----------------------------------------------------------------------- */
-
-/*
- * Written as `.item + .item--points`, not `.item--points`.
- *
- * The rule being overridden is `.beeoch-opc-active .beeoch-opc-promo__item +
- * .beeoch-opc-promo__item`, which is three classes. A two-class override loses no matter
- * where it sits in the file — the same specificity slip that has bitten several times in
- * this stylesheet. Matching the shape puts both at three classes, and later wins.
- */
-.beeoch-opc-active .beeoch-opc-promo__item + .beeoch-opc-promo__item--points {
-	border-top: 0;
-	margin-top: 0;
-	padding-top: 0;
-}
 
 /* --------------------------------------------------------------------------
  * 12. Points row — same treatment as store credit
@@ -1491,6 +1526,32 @@
 	}
 }
 
+/* --------------------------------------------------------------------------
+ * 24b. Order review on the left, billing on the right
+ *
+ * Which of Elementor's two grid columns (`-start` / `-end`) holds billing is a per-site
+ * checkout-widget setting, not something fixed by the markup — confirmed different between
+ * this store's local, staging and production copies. `:has()` finds the column that actually
+ * contains `#customer_details` and reorders it last, whichever class it turns out to be, so
+ * this is correct regardless of that setting.
+ *
+ * Done in CSS rather than by setting `order` from JavaScript (the first version of this):
+ * JavaScript cannot act before `$(document).ready()`, so the page painted in Elementor's
+ * original column order for however long the page took to reach ready — up to a couple of
+ * seconds on a heavy Elementor page — and then visibly jumped. A CSS rule applies during the
+ * browser's own layout pass, before anything is painted, so there is nothing to jump.
+ * ----------------------------------------------------------------------- */
+
+@media ( min-width: 1025px ) {
+	.beeoch-opc-active .e-checkout__container:has( .e-checkout__column-start #customer_details ) .e-checkout__column-start {
+		order: 2;
+	}
+
+	.beeoch-opc-active .e-checkout__container:has( .e-checkout__column-start #customer_details ) .e-checkout__column-end {
+		order: 1;
+	}
+}
+
 /* With more room available, keep the totals column tight so the name takes the surplus. */
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table th.product-total,
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce table.woocommerce-checkout-review-order-table td.product-total {
@@ -1810,9 +1871,13 @@
 	border: 0 !important;
 }
 
-/* The row draws one continuous rule. */
+/*
+ * The row draws one continuous rule — thead and tfoot only. Cart item rows (tbody) were
+ * dropped from this list at the owner's request: the §31 fallback shadow on tbody cells is
+ * already zeroed, so removing tbody here is enough on its own to leave those rows with no
+ * separator at all.
+ */
 .beeoch-opc-active table.woocommerce-checkout-review-order-table thead tr,
-.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr,
 .beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr {
 	border-bottom: 1px solid var( --opc-rule-soft ) !important;
 }
@@ -1917,4 +1982,785 @@
 .beeoch-opc-active table.woocommerce-checkout-review-order-table {
 	max-width: 100%;
 	overflow-wrap: anywhere;
+}
+
+/* --------------------------------------------------------------------------
+ * 34. Our controls align left whatever the cell's display is
+ *
+ * The centred quantity stepper on staging came from Custom CSS on the Elementor checkout
+ * component — Astra's own selector copied in with a declaration added:
+ *
+ *   .woocommerce-page.woocommerce-checkout form #order_review td.product-name { … }
+ *       display: flex; align-items: center; flex-direction: column;
+ *
+ * In a COLUMN flex container `align-items: center` centres horizontally, which is what pushed
+ * the stepper and remove button off the left edge. That rule is editable in Elementor and
+ * should be removed at source; this section is only a guard in case it stays or returns.
+ *
+ * Deliberately NOT `display: table-cell !important` on the cell. That would win — the rule is
+ * not itself important, and `!important` beats an ID selector even though extra classes
+ * cannot — but it would also stop anyone restyling this cell from the page, which is a poor
+ * trade for a plugin to force. Aligning our own injected elements is enough, costs nothing if
+ * the cell is a normal table cell, and leaves the cell itself to whoever is styling the page.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active td.product-name .beeoch-opc-qty,
+.beeoch-opc-active td.product-name .beeoch-opc-remove {
+	align-self: flex-start;
+	margin-inline-start: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 35. The gathered wrappers contribute no spacing of their own
+ *
+ * `.e-coupon-box` is an Elementor layout box carrying its own margin, and once it has been
+ * moved inside a promotion row that margin is pure dead space — enough of it to push the
+ * panel down and introduce a scroll. §17 zeroed it already but without `!important`, so it
+ * lost on source order.
+ *
+ * `!important` is comfortable here in a way it was not in §34: every selector below is scoped
+ * inside `.beeoch-opc-promo`, so this only governs elements we have taken into our own panel.
+ * It does not constrain how the same box is styled anywhere else on the page.
+ *
+ * Applied to the gathered wrapper in every form it takes: moved into a reserved slot, moved
+ * into the panel body, or wrapped client-side.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-promo .e-coupon-box,
+.beeoch-opc-active .beeoch-opc-promo__item--gathered,
+.beeoch-opc-active .beeoch-opc-promo__body .beeoch-opc-wrapped,
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .beeoch-opc-promo .e-coupon-box {
+	margin: 0 !important;
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 36. Reserved slots
+ *
+ * A slot is a complete promotion row whose body is empty until JavaScript moves the plugin's
+ * markup into it (Promotions::render_slot). It exists so the panel is the right height, in
+ * the right order, on first paint — the rows no longer arrive late and reshuffle.
+ *
+ * Nothing here makes a pending row look different: a slot that reads as "loading" would be
+ * more distracting than the row it replaces, and it is only ever pending for the moment
+ * between first paint and our script running.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active [data-beeoch-slot] > .beeoch-opc-acc {
+	margin: 0;
+}
+
+/* An empty body must not add height while the row waits to be filled. */
+.beeoch-opc-active .beeoch-opc-acc--pending > .beeoch-opc-acc__body:empty {
+	padding: 0;
+	min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 37. Inline reason when a quantity change is refused
+ *
+ * Shown beside the stepper by checkout.js when the bounds reject a click — the case where no
+ * request is sent, so no refresh happens and the server never gets to explain. WooCommerce's
+ * notice group handles the rest, but it renders at the top of the form, which is usually
+ * scrolled out of view when someone is editing the order summary.
+ *
+ * Sized in `rem`, not `em`: the product cell's font-size varies with the theme, and `em` here
+ * produced visibly different text from one row to the next.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty__hint {
+	display: block;
+	flex-basis: 100%;
+	margin: 0.4rem 0 0;
+	font-size: 0.78rem;
+	line-height: 1.35;
+	font-weight: 600;
+	color: var( --opc-danger, #b32d2e );
+	text-align: left;
+}
+
+/* --------------------------------------------------------------------------
+ * 38. Shipping options get the full width
+ *
+ * §26 sets `table-layout: fixed` with a 78/22 split, which is right for product rows: the name
+ * needs the room, the price needs almost none. But columns in a fixed-layout table belong to
+ * the TABLE, not to a row, so `tfoot` is stuck with the same 78/22 — putting "Shipping" in a
+ * 78% cell and squeezing the method radios into the remaining 22%, where each option wrapped
+ * over several lines and stacked hard against the left.
+ *
+ * No per-row width can fix that while the layout is fixed, so the row leaves the column model
+ * altogether: row and cells become blocks, the label sits on its own line, and the options take
+ * the full width beneath it.
+ *
+ * Originally scoped to `max-width: 1024px` on the reasoning that "the desktop layout is not to
+ * be touched" — true when that line was written, but the 78/22 split is unconditional (§26 has
+ * no media query of its own), so the identical squeeze exists at every width, desktop included,
+ * and simply went unnoticed there until the order-review column was moved (§24b). Un-scoped here
+ * so both get the same fix, by the same rule, rather than a duplicated desktop-only copy.
+ *
+ * Only the shipping row is affected. Subtotal, discounts and order total keep the 78/22
+ * alignment at every width — they are label/amount pairs, which is what that split is for.
+ *
+ * A subscription in the cart alongside a one-time item adds a SECOND shipping row for the
+ * recurring shipment — WooCommerce Subscriptions' own `tr.shipping.recurring-total` / `<ul
+ * id="shipping_method_{scheme}">`, not core's `tr.woocommerce-shipping-totals` / `#shipping_method
+ * .woocommerce-shipping-methods`. Neither of those two classes is present on the recurring
+ * version, and its `<ul>` has no class at all — only the shared `shipping` class on the row and
+ * the shared `shipping_method` ID *prefix* on the list survive across both. Selectors below key
+ * on those two instead, so one rule now covers "Initial Shipment" and every recurring shipping
+ * row a cart's subscription schemes produce, rather than only the first.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping {
+	display: block;
+	width: 100%;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > th,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td {
+	display: block;
+	width: auto;
+	max-width: none;
+	text-align: left;
+}
+
+/* The label is a heading for the options under it, not half of a label/amount pair. */
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > th {
+	padding-bottom: 0.3rem;
+}
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td {
+	padding-top: 0;
+}
+
+/* One option per line, radio and label on a single baseline. */
+.beeoch-opc-active ul[id^="shipping_method"],
+.beeoch-opc-active ul.woocommerce-shipping-methods {
+	display: grid;
+	gap: 0.45rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/*
+ * WooCommerce gives each option a hanging indent:
+ *
+ *   ul#shipping_method li:not(.elementor-widget-woocommerce-cart #shipping_method li) {
+ *       padding: 0.25em 0 0.25em 22px;
+ *       text-indent: -22px;
+ *   }
+ *
+ * That pairs a 22px left padding with a matching negative indent so a radio sitting INLINE
+ * in the text flow hangs in the gutter and wrapped lines align under the label. Making the
+ * item a flex container breaks both halves of that bargain: the padding becomes dead space
+ * on the left, and the negative indent — inherited by the label, since `text-indent`
+ * inherits — drags the label's first line 22px left, directly underneath the radio. That
+ * inheritance is the overlap; resetting the padding alone would not have fixed it.
+ *
+ * `!important` rather than a more specific selector: their selector carries `#shipping_method`
+ * plus another ID inside the `:not()`, and no number of classes — or an attribute selector —
+ * outranks an ID. Their declarations are not important, so ours win regardless; `!important`
+ * is what actually does the overriding here, which is also why switching the ID match to
+ * `[id^="shipping_method"]` (to reach the recurring list's `#shipping_method_{scheme}`, which
+ * their own hanging-indent rule does not even target) loses nothing.
+ */
+.beeoch-opc-active ul[id^="shipping_method"] > li,
+.beeoch-opc-active ul.woocommerce-shipping-methods > li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.55rem;
+	margin: 0 !important;
+	padding: 0.25rem 0 !important;
+	text-indent: 0 !important;
+	list-style: none;
+	text-align: left;
+}
+
+.beeoch-opc-active ul[id^="shipping_method"] > li input.shipping_method {
+	flex: 0 0 auto;
+	margin: 0.2rem 0 0;
+}
+
+/*
+ * The label carries the method name and its cost as one phrase ("Flat rate: $9.95"), so it
+ * is left to read as one phrase rather than being split into columns — the amount is not a
+ * separate column here.
+ */
+.beeoch-opc-active ul[id^="shipping_method"] > li label,
+.beeoch-opc-active ul.woocommerce-shipping-methods > li label {
+	flex: 1 1 auto;
+	margin: 0;
+	/* Belt and braces against the inherited negative indent reset on the item above. */
+	text-indent: 0 !important;
+	padding-left: 0 !important;
+	line-height: 1.4;
+	cursor: pointer;
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+/* "Shipping to …" is supporting detail, not an option. */
+.beeoch-opc-active .woocommerce-shipping-destination {
+	margin: 0.5rem 0 0;
+	font-size: 0.82rem;
+	line-height: 1.4;
+	opacity: 0.75;
+}
+
+/* --------------------------------------------------------------------------
+ * 38b. Plan control's own full-width row — MOBILE ONLY
+ *
+ * checkout.js's `spanPlanFullWidth()` moves `.beeoch-opc-plan` out of `td.product-name`
+ * (capped at 78% of the table) into a new `<td colspan="2">` of its own, which
+ * table-layout: fixed sizes to the full table width by construction. Unlike §38, this one
+ * stays mobile-only: the plan control's own cell is not cramped on desktop, where the 50/50
+ * column split (§24) leaves it plenty of room — this was always specifically a narrow-viewport
+ * complaint (see checkout.js).
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	/*
+	 * The original row's border-bottom is suppressed. Left in place it would sit BETWEEN the
+	 * product line and its own plan control — reading as a separator inside one entry rather
+	 * than the boundary at the end of it. The base th/td rule already gives the new row its own
+	 * border-bottom, which becomes the entry's true bottom edge.
+	 */
+	.beeoch-opc-active tr.beeoch-opc-has-plan-row td,
+	.beeoch-opc-active tr.beeoch-opc-has-plan-row th {
+		border-bottom: 0;
+	}
+
+	.beeoch-opc-active tr.beeoch-opc-plan-row td {
+		padding-top: 0;
+		padding-left: 0.1rem;
+		padding-right: 0.1rem;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 39. Line item: thumbnail beside the product name
+ *
+ * `ItemName` wraps the name as:
+ *
+ *   <span class="beeoch-opc-item">
+ *     <a class="beeoch-opc-item__media"><img></a>
+ *     <span class="beeoch-opc-item__text"><a class="beeoch-opc-item__link">Name</a></span>
+ *   </span>
+ *
+ * The wrapper holds the image and the title only. The variation list and the quantity stepper
+ * are siblings of it inside the same cell, printed separately by the template, so they sit
+ * BELOW this row at full width rather than being indented past the thumbnail.
+ *
+ * That is a deliberate choice, not a limitation worked around. Indenting them would mean
+ * turning the cell into a grid — and the template emits a bare `&nbsp;` between the name and
+ * the quantity, which becomes an anonymous grid item and lands in an arbitrary cell. A row
+ * that is predictable everywhere beats one that is prettier until a stray text node moves.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.65rem;
+	text-align: left;
+}
+
+.beeoch-opc-active .beeoch-opc-item__media {
+	flex: 0 0 auto;
+	width: 3.25rem;
+	line-height: 0;
+	border-radius: 6px;
+	overflow: hidden;
+	text-decoration: none;
+}
+
+/*
+ * WooCommerce ships a responsive image with srcset, so width alone would let it pick a size
+ * for a box it is not in. Both dimensions are pinned and the aspect ratio is squared off, so
+ * every row is the same height whatever shape the original photograph is.
+ */
+.beeoch-opc-active .beeoch-opc-item__media img {
+	display: block;
+	width: 3.25rem;
+	height: 3.25rem;
+	max-width: none;
+	object-fit: cover;
+	margin: 0;
+	border-radius: 6px;
+}
+
+.beeoch-opc-active .beeoch-opc-item__text {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/*
+ * The title reads as the product name, not as a link — underlined only on hover and focus.
+ * A row of permanently underlined titles in an order summary reads as clutter, but removing
+ * the affordance entirely would hide that they are clickable at all.
+ */
+.beeoch-opc-active .beeoch-opc-item__link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.beeoch-opc-active .beeoch-opc-item__link:hover,
+.beeoch-opc-active .beeoch-opc-item__link:focus-visible {
+	text-decoration: underline;
+}
+
+/* A line with no image keeps its text aligned with the rows that have one. */
+.beeoch-opc-active .beeoch-opc-item:not( :has( .beeoch-opc-item__media ) ) .beeoch-opc-item__text {
+	padding-left: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 40. Subscription plan switcher on a line
+ *
+ * `SubscriptionOptions` appends All Products for Subscriptions' own `<ul class="wcsatt-options">`
+ * after the quantity stepper. Its markup is the plugin's, so everything here is layout only —
+ * no attempt is made to restyle the plan descriptions, which carry prices and frequencies the
+ * plugin formats to the store's settings.
+ * ----------------------------------------------------------------------- */
+
+/*
+ * `align-self: stretch`, not just `display: block`.
+ *
+ * Staging carries Elementor Custom CSS on `#order_review td.product-name` — the same rule §34
+ * already found and worked around for the quantity stepper — pairing `display: flex;
+ * flex-direction: column` with `align-items: center`. In a COLUMN flex container that pairing
+ * means CENTRE ON THE CROSS AXIS, which for a column is WIDTH: a child with no `align-self` of
+ * its own shrinks to hug its own content and is then centred in the space left over, rather
+ * than filling the row. `display: block` on its own does nothing to stop that — `display` only
+ * matters once an item is actually given room to fill.
+ *
+ * The plan block looked narrow specifically on mobile because that is where the effect is most
+ * visible: the shrunk-to-content width is a much larger fraction of a phone-width column than
+ * of a wide desktop one, which is also why desktop read as fine already. `align-self` is a
+ * per-child override — it always wins over the parent's `align-items` for the element that
+ * sets it, whichever stylesheet the parent's rule came from and regardless of specificity or
+ * `!important` — so this needed no specificity fight, only the property nothing had set yet.
+ *
+ * Harmless if that Custom CSS is ever removed: `align-self` and the extra `width: 100%` do
+ * nothing outside a flex or grid parent, so this is not something to undo alongside it.
+ */
+.beeoch-opc-active .beeoch-opc-plan {
+	display: block;
+	align-self: stretch;
+	width: 100%;
+	margin-top: 0.55rem;
+}
+
+.beeoch-opc-active .beeoch-opc-plan[data-state="busy"] {
+	opacity: 0.55;
+	pointer-events: none;
+}
+
+.beeoch-opc-active .beeoch-opc-plan .wcsatt-options {
+	display: grid;
+	gap: 0.3rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/*
+ * Same hanging-indent reset as the shipping options in §38, and for the same reason: these
+ * list items are laid out as flex rows, and any inherited `text-indent` would drag the label's
+ * first line back underneath its own radio.
+ */
+.beeoch-opc-active .beeoch-opc-plan .wcsatt-options > li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	margin: 0 !important;
+	padding: 0 !important;
+	text-indent: 0 !important;
+	list-style: none;
+}
+
+.beeoch-opc-active .beeoch-opc-plan .wcsatt-options > li label {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.4;
+	cursor: pointer;
+	text-indent: 0 !important;
+}
+
+.beeoch-opc-active .beeoch-opc-plan .wcsatt-options input[type="radio"] {
+	flex: 0 0 auto;
+	margin: 0.15rem 0 0;
+}
+
+/* The plan the customer is on should be the one that reads loudest. */
+.beeoch-opc-active .beeoch-opc-plan .wcsatt-options input[type="radio"]:checked + span {
+	font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+ * 41. Plan switcher as a dropdown
+ *
+ * The radio rules in §40 are kept: `beeoch_opc_plan_control` can return 'radio' to restore
+ * All Products for Subscriptions' own list, and the fallback in `extract_options()` uses it if
+ * their template name ever changes. Both presentations therefore have to stay styled.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-plan__field {
+	display: block;
+}
+
+.beeoch-opc-active .beeoch-opc-plan__select {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
+	padding: 0.45rem 1.9rem 0.45rem 0.6rem;
+	font-family: inherit;
+	font-size: 0.85rem;
+	line-height: 1.3;
+	color: inherit;
+	background-color: transparent;
+	border: 1px solid var( --opc-rule-soft );
+	border-radius: 6px;
+	cursor: pointer;
+
+	/*
+	 * The native arrow is suppressed and redrawn so the control matches the checkout's other
+	 * fields across browsers. Inlined as a data URI because the stylesheet is loaded from the
+	 * plugin directory and a relative path would resolve against it, not the page.
+	 */
+	appearance: none;
+	-webkit-appearance: none;
+	background-image: url( "data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23555' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E" );
+	background-repeat: no-repeat;
+	background-position: right 0.65rem center;
+	background-size: 0.7rem auto;
+
+	/*
+	 * padding-right already reserves room for the arrow; box-sizing makes that padding come out
+	 * of the 100% width instead of adding to it, so the arrow cannot be pushed outside the box.
+	 */
+	box-sizing: border-box;
+
+	/*
+	 * The CLOSED select's own text. A <select> does not wrap its selected value and does not
+	 * add an ellipsis on its own — an option longer than the box is simply cut off flush at the
+	 * edge, with nothing to show there is more. Chrome, Firefox and Safari all render this
+	 * closed-state text as an ordinary inline run, so the standard truncation trio applies to
+	 * it same as any other text.
+	 *
+	 * This does not touch the OPEN dropdown: §41 already sets `white-space: normal` on
+	 * `option`, so the list itself still wraps long labels onto more than one line. Only the
+	 * collapsed control gets ellipsis, which is the one place a hard cut was actually visible.
+	 */
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.beeoch-opc-active .beeoch-opc-plan__select:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: 1px;
+}
+
+/* Long plan names must not stretch the summary column. */
+.beeoch-opc-active .beeoch-opc-plan__select option {
+	white-space: normal;
+}
+
+/* --------------------------------------------------------------------------
+ * 42. Free gift call-out
+ *
+ * Rendered by `FreeGift` into the order-review column, above the promotions panel, and
+ * replaced wholesale on every refresh. When the cart stops qualifying the fragment comes back
+ * empty — hence `:empty` doing the hiding rather than the block being removed, which would
+ * leave the fragment with no node to replace next time.
+ *
+ * Given its own `order` so it sits between the summary and the promotions: after the totals
+ * that decide eligibility, before the rows a customer works through.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-gift {
+	order: 2;
+}
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-promo {
+	order: 3;
+}
+
+/* No offer, no box — but the element stays in the DOM for the next fragment swap. */
+.beeoch-opc-active .beeoch-opc-gift:empty {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-gift {
+	margin-top: var( --opc-gap );
+}
+
+.beeoch-opc-active .beeoch-opc-gift__inner {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.7rem;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid var( --opc-rule-soft );
+	border-radius: 8px;
+	/* A tint of the store's own accent, so it reads as an offer rather than as an error. */
+	background: color-mix( in srgb, currentColor 4%, transparent );
+}
+
+.beeoch-opc-active .beeoch-opc-gift__icon {
+	flex: 0 0 auto;
+	width: 1.35rem;
+	line-height: 0;
+	margin-top: 0.1rem;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__icon svg {
+	width: 1.35rem;
+	height: 1.35rem;
+	display: block;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__body {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__message {
+	margin: 0;
+	font-size: 0.88rem;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	margin-top: 0.6rem;
+}
+
+/*
+ * The picker is the plugin's own markup, including a select it upgrades with JavaScript.
+ * Only its width is constrained — restyling it risks fighting the script that decorates it.
+ */
+.beeoch-opc-active .beeoch-opc-gift__picker select {
+	max-width: 100%;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__picker .demo-live {
+	max-width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+ * 43. The gift block may not push the layout around
+ *
+ * The picker is the gift plugin's own markup, sized for the full width of a cart page. Dropped
+ * into the order-summary column it was wider than its grid track, and because a flex or grid
+ * item defaults to `min-width: auto` — meaning "never shrink below my content" — the column
+ * could not shrink to absorb it. The summary grew, and the customer-details column beside it
+ * was squeezed to almost nothing.
+ *
+ * `min-width: 0` on the checkout's own columns is the fix for that class of bug generally, and
+ * is applied here rather than only to our block: any wide thing a plugin renders into either
+ * column would do the same. The overflow guards below then keep our own block inside its box.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .e-checkout__order_review,
+.beeoch-opc-active .e-checkout__container,
+.beeoch-opc-active #customer_details,
+.beeoch-opc-active #customer_details > .col-1,
+.beeoch-opc-active #customer_details > .col-2 {
+	min-width: 0;
+}
+
+.beeoch-opc-active .beeoch-opc-gift,
+.beeoch-opc-active .beeoch-opc-gift__inner,
+.beeoch-opc-active .beeoch-opc-gift__body,
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	min-width: 0;
+	max-width: 100%;
+}
+
+/*
+ * Descendants are NOT capped with a blanket `max-width: 100%`.
+ *
+ * That rule was here and it broke the carousel outright. owl-carousel sizes `.owl-stage` to the
+ * combined width of every slide — 8618px in this store's case — and then scrolls it with a
+ * transform. Capping the stage to the width of its container while the transform still moved it
+ * by -2154px pushed every slide out of view, leaving a correctly-sized box with nothing in it.
+ *
+ * Only images are capped, which is the case that actually needed it. Width belongs to whatever
+ * component is doing the laying out; §44 contains the column instead, which is the right place
+ * for it and does not require knowing anything about the plugin's internals.
+ */
+.beeoch-opc-active .beeoch-opc-gift__picker img {
+	max-width: 100%;
+	height: auto;
+}
+
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	box-sizing: border-box;
+}
+
+/*
+ * Their modal lives in the footer and is opened by the "Here" link, which is still in the
+ * message. It must never be laid out as part of our block — when it was, closing it left its
+ * contents sitting inline under the text.
+ */
+.beeoch-opc-active .beeoch-opc-gift .wgb-popup,
+.beeoch-opc-active .beeoch-opc-gift .wgb-popup-box,
+.beeoch-opc-active .beeoch-opc-gift #wgb-modal {
+	display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+ * 44. The gift picker cannot resize the checkout, initialised or not
+ *
+ * §43 put `min-width: 0` on `.e-checkout__order_review` and it made no difference, because
+ * that is not the element being sized. Elementor's two checkout columns are
+ * `.e-checkout__column` inside `.e-checkout__container`, and it is the COLUMN that is the flex
+ * or grid item. `min-width: auto` on that is what let an oversized carousel inside the summary
+ * take width from the customer-details column until it was ~250px wide.
+ *
+ * Fixing the actual item is the whole of it. Everything below is belt and braces so that this
+ * cannot come back through some other wide thing a plugin renders into either column.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .e-checkout__column,
+.beeoch-opc-active .e-checkout__column-inner,
+.beeoch-opc-active .e-checkout__column-start,
+.beeoch-opc-active .e-checkout__column-end {
+	min-width: 0;
+}
+
+
+/*
+ * No height cap and no vertical scrollbar. The earlier `max-height: 22rem; overflow-y: auto`
+ * is what produced a tall scrolling area around content that was not there — the carousel sizes
+ * itself to one row of slides, so there is nothing to constrain.
+ */
+.beeoch-opc-active .beeoch-opc-gift__picker {
+	max-height: none;
+	overflow-y: visible;
+}
+
+
+/* --------------------------------------------------------------------------
+ * 46. Recurring price on a subscription line
+ *
+ * `.wcs-checkout-item-price` is WooCommerce Subscriptions' own element, returned from
+ * `WC_Subscriptions_Cart::checkout_cart_item_details()` on `woocommerce_checkout_cart_item_quantity`
+ * at priority 10 — so it arrives as part of the markup our stepper wraps at priority 20, and
+ * sits inside `.beeoch-opc-qty` on any line that has a plan.
+ *
+ * Nothing else on the site styles it, so no `!important` is needed and none is used: a plain
+ * rule here can still be overridden from the page later without a fight.
+ *
+ * 15px as specified, rather than converted to rem. It is a fixed request for a fixed size, and
+ * writing it as 0.9375rem would only obscure that.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .wcs-checkout-item-price {
+	font-size: 15px;
+	line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+ * 47. Fixed-quantity lines
+ *
+ * A line that may be removed but not re-counted (a free gift) now renders the remove control
+ * on its own. It needs none of the stepper's chrome, only the same alignment.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-qty--fixed {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+
+/* While a gift is being added the block is inert, so a second click cannot double-add. */
+.beeoch-opc-active .beeoch-opc-gift[data-state="busy"] {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+ * 48. Label beside the purchase-option control
+ *
+ * The label and the dropdown sit on one line and wrap to two when the column is too narrow for
+ * both — `flex-wrap` rather than a breakpoint, because the summary column's width depends on
+ * the theme and the viewport together, and a guess at either would be wrong somewhere.
+ * ----------------------------------------------------------------------- */
+
+/*
+ * Label above, select on its own full-width line below — not side by side.
+ *
+ * They shared one line at first, with the select taking only what was left after the label.
+ * That is exactly backwards for this control: the select's TEXT is the thing that must not be
+ * cut ("$40.50 every 2 months" and similar run long), while the label is a single short word.
+ * Stacking gives the select the whole column width, which is the real fix — the ellipsis added
+ * to the select above is the fallback for when even that is not enough, not the first line of
+ * defence.
+ */
+.beeoch-opc-active .beeoch-opc-plan__field {
+	display: block;
+}
+
+.beeoch-opc-active .beeoch-opc-plan__label {
+	display: block;
+	margin: 0 0 0.3rem;
+	font-size: 0.78rem;
+	font-weight: 600;
+	line-height: 1.3;
+	opacity: 0.8;
+	cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+ * 49. Free-shipping bar, standalone above the order review
+ *
+ * Rendered by `FreeShipping`, a direct child of `.e-checkout__order_review` like the gift
+ * call-out and the promotions panel (§21, §42), so the same flex container carries it. Given
+ * `order: -1` to sit before both `#order_review_heading` (order 0) and `#order_review` itself
+ * (order 1) — "above the order review" is what was asked for, not just above the promotions.
+ *
+ * The notice markup is WooCommerce's own `.woocommerce-info` template, built via
+ * `wc_print_notice()` — no restyling of its content, only the wrapper's position and spacing.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .e-checkout__order_review > .beeoch-opc-shipping-bar {
+	order: -1;
+}
+
+/* No offer to show, no box — but the element stays in the DOM for the next fragment swap. */
+.beeoch-opc-active .beeoch-opc-shipping-bar:empty {
+	display: none;
+}
+
+.beeoch-opc-active .beeoch-opc-shipping-bar {
+	margin-bottom: var( --opc-gap );
+}
+
+.beeoch-opc-active .beeoch-opc-shipping-bar .woocommerce-info {
+	margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+ * 50. Space between cart items, now that §30 draws no line there
+ *
+ * Dropping tbody from §30's row border removed the only thing separating one cart item from
+ * the next. Extra bottom padding on tbody cells stands in for it — added on top of the base
+ * `0.5em 0` from line 169, not replacing it, so the text inside each row keeps its existing
+ * breathing room and only the gap BETWEEN rows grows.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr td,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr th {
+	padding-bottom: 20px !important;
 }

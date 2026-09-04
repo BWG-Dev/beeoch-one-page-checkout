@@ -61,6 +61,21 @@ class Promotions {
 			'method'   => 'woocommerce_checkout_coupon_form',
 			'priority' => 10,
 			'label'    => 'coupon',
+			'wrap'     => true,
+			'title'    => 'Have a coupon?',
+			'icon'     => '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+			/*
+			 * Elementor renders the coupon form itself, inside its own `.e-coupon-box`, so the
+			 * detach above finds nothing on an Elementor checkout and the block arrives by DOM
+			 * move instead. `slot` says: when that happens, still render the ROW here — header,
+			 * icon and all — and let JavaScript drop the plugin's markup into its empty body.
+			 *
+			 * That is what removes the visible delay. A collapsed <details> is exactly as tall
+			 * as its header, and the header is known server-side, so the panel is complete and
+			 * correctly ordered on first paint. Only the body fills in later, and a collapsed
+			 * body is not on screen for anyone to watch arrive.
+			 */
+			'slot'     => true,
 		),
 		array(
 			'hook'     => 'woocommerce_checkout_order_review',
@@ -95,6 +110,17 @@ class Promotions {
 			'method'   => 'woocommerce_before_checkout_form',
 			'priority' => 40,
 			'label'    => 'gift-card',
+			'wrap'     => true,
+			'title'    => 'Have a gift card?',
+			'icon'     => '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
+			/*
+			 * Slotted for a second reason as well as Elementor: PW Gift Cards re-renders this
+			 * form from `woocommerce_review_order_before_submit`, inside the replaced payment
+			 * fragment, so a fresh unwrapped copy appears after EVERY refresh. With a permanent
+			 * server-rendered row to drop it into, the row itself survives refreshes instead of
+			 * being rebuilt — so it no longer flickers each time the totals update.
+			 */
+			'slot'     => true,
 		),
 		array(
 			'hook'     => 'woocommerce_checkout_order_review',
@@ -187,6 +213,32 @@ class Promotions {
 	}
 
 	/**
+	 * An empty row, reserved for a block that JavaScript will move in.
+	 *
+	 * Same markup as `wrap_in_row()` with nothing in the body, plus two hooks the script uses:
+	 * `data-beeoch-slot` to find it, and `--pending` to mark it unfilled.
+	 *
+	 * Accepted trade-off: if the script never runs at all, these rows stay empty rather than
+	 * disappearing. That is deliberate — reserving the space from first paint is the entire
+	 * point, and gating it on a JavaScript-set class would reserve it only at the moment the
+	 * script runs, which is exactly the moment the delay ends. A page where our script never
+	 * executes has no quantity controls either, so it is already a failure being looked at.
+	 *
+	 * @param array<string, mixed> $spec Block configuration.
+	 */
+	private function render_slot( array $spec ): string {
+		return sprintf(
+			'<div class="beeoch-opc-promo__item beeoch-opc-promo__item--%1$s" data-beeoch-slot="%1$s">%2$s</div>',
+			esc_attr( (string) $spec['label'] ),
+			str_replace(
+				'class="beeoch-opc-acc"',
+				'class="beeoch-opc-acc beeoch-opc-acc--pending"',
+				$this->wrap_in_row( $spec, '' )
+			)
+		);
+	}
+
+	/**
 	 * Phase 1 — detach blocks attached to `woocommerce_before_checkout_form`.
 	 */
 	public function collect_early(): void {
@@ -233,26 +285,46 @@ class Promotions {
 			}
 		}
 
-		if ( array() === $this->blocks ) {
-			return;
-		}
-
 		$sections = array();
 
-		foreach ( $this->blocks as $label => $callback ) {
-			$markup = Hooks::capture( $callback );
+		/*
+		 * Iterated in BLOCKS order, not detach order.
+		 *
+		 * `$this->blocks` is keyed by label but filled in two phases, so its natural order is
+		 * whichever hook happened to be harvested first — which put the gathered blocks last
+		 * and left the panel reading store credit, points, coupon, gift card. BLOCKS documents
+		 * the order these are meant to appear in; this is what actually honours it.
+		 */
+		foreach ( self::BLOCKS as $spec ) {
+			$label  = (string) $spec['label'];
+			$markup = '';
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( sprintf( 'BEEOCH-OPC [relocate] captured "%s": %d bytes', $label, strlen( $markup ) ) );
+			if ( isset( $this->blocks[ $label ] ) ) {
+				$markup = Hooks::capture( $this->blocks[ $label ] );
+
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					error_log( sprintf( 'BEEOCH-OPC [relocate] captured "%s": %d bytes', $label, strlen( $markup ) ) );
+				}
+
+				// A block with nothing to say — no points balance, say — adds only noise.
+				if ( '' === trim( wp_strip_all_tags( $markup ) ) && ! str_contains( $markup, '<input' ) ) {
+					$markup = '';
+				}
 			}
 
-			// A block with nothing to say — no points balance, say — adds only noise.
-			if ( '' === trim( wp_strip_all_tags( $markup ) ) && ! str_contains( $markup, '<input' ) ) {
+			if ( '' === $markup ) {
+				/*
+				 * Nothing captured. If this block arrives by DOM move instead, leave a row for
+				 * JavaScript to fill; otherwise the plugin simply is not present and the panel
+				 * is one row shorter.
+				 */
+				if ( ! empty( $spec['slot'] ) ) {
+					$sections[] = $this->render_slot( $spec );
+				}
+
 				continue;
 			}
-
-			$spec = $this->spec_for( $label );
 
 			if ( ! empty( $spec['wrap'] ) ) {
 				$markup = $this->wrap_in_row( $spec, $markup );

@@ -22,6 +22,10 @@
 
 	var settings = window.beeochOpc;
 	var DEBOUNCE_MS = 350;
+	var HINT_MS = 5000;
+
+	// Translated strings, with English fallbacks so a missing localisation never blanks a hint.
+	var I18N = settings.i18n || {};
 
 	var pending = null;   // Coalesced edit awaiting dispatch.
 	var timer = null;
@@ -115,6 +119,49 @@
 	}
 
 	/**
+	 * Say why a quantity change was refused, next to the control that refused it.
+	 *
+	 * When the bounds reject a click, no request is sent — so there is no refresh, and the
+	 * server has no opportunity to explain. Without this the customer clicks "+" and nothing
+	 * whatsoever happens, which reads as a broken button rather than as a stock limit.
+	 *
+	 * Placed beside the stepper rather than in WooCommerce's notice group at the top of the
+	 * form: the notice group is what the server uses, and it is usually scrolled out of sight
+	 * when someone is working in the order summary.
+	 *
+	 * `role="status"` so it is announced. A silent no-op is worse with a screen reader, not
+	 * better.
+	 */
+	function hint( $control, message ) {
+		if ( ! message ) {
+			return;
+		}
+
+		$control.siblings( '.beeoch-opc-qty__hint' ).remove();
+
+		var $hint = $( '<span/>', {
+			'class': 'beeoch-opc-qty__hint',
+			role: 'status',
+			text: message
+		} );
+
+		$control.after( $hint );
+
+		window.setTimeout( function () {
+			$hint.fadeOut( 200, function () {
+				$hint.remove();
+			} );
+		}, HINT_MS );
+	}
+
+	/**
+	 * The upper bound this control was rendered with, or NaN when unlimited.
+	 */
+	function maxOf( $control ) {
+		return parseInt( $control.attr( 'data-max' ), 10 );
+	}
+
+	/**
 	 * Enable controls and wire them up. Runs on load and after every refresh, because
 	 * the review table is replaced wholesale each time.
 	 */
@@ -142,11 +189,27 @@
 
 		var $input = $control.find( '.beeoch-opc-qty__input' );
 		var delta = parseInt( $button.attr( 'data-beeoch-opc-delta' ), 10 ) || 0;
-		var next = clamp( $control, ( parseInt( $input.val(), 10 ) || 0 ) + delta );
+		var current = parseInt( $input.val(), 10 ) || 0;
+		var next = clamp( $control, current + delta );
 
-		if ( next === ( parseInt( $input.val(), 10 ) || 0 ) ) {
+		if ( next === current ) {
+			/*
+			 * The bounds refused this. Previously the handler returned here in silence, so
+			 * pressing "+" on a line already at its stock limit did nothing at all and gave
+			 * the customer no way to tell a limit from a bug.
+			 */
+			var max = maxOf( $control );
+
+			if ( delta > 0 && ! isNaN( max ) && current >= max ) {
+				hint( $control, ( I18N.stockMax || 'Only %d left in stock.' ).replace( '%d', max ) );
+			} else if ( delta < 0 ) {
+				hint( $control, I18N.minOne );
+			}
+
 			return;
 		}
+
+		$control.siblings( '.beeoch-opc-qty__hint' ).remove();
 
 		// Optimistic: the number moves immediately, totals catch up on the refresh.
 		$input.val( next );
@@ -180,10 +243,260 @@
 		timer = window.setTimeout( dispatch, 0 );
 	} );
 
+	/**
+	 * A plan change refreshes the totals.
+	 *
+	 * The radios are All Products for Subscriptions' own, named `cart[key][convert_to_sub]`,
+	 * and they sit inside `form.checkout` — so WooCommerce serialises them into `post_data`
+	 * without any help from us. Nothing needs to be carried, queued or de-duplicated here; the
+	 * refresh alone delivers the choice, and `SchemeUpdate` applies it server-side.
+	 *
+	 * Deliberately not routed through queue(): that carries OUR mutation fields with a nonce
+	 * and a single-use token, and a plan change is neither. Sending one would consume a token
+	 * for an edit the server was never asked to make.
+	 */
+	/**
+	 * Refresh after the free-gift plugin changes the cart.
+	 *
+	 * Adding or swapping a gift is their own AJAX call, and it knows nothing about this
+	 * checkout — it neither triggers `update_checkout` nor reloads. Without this the gift lands
+	 * in the cart while the totals, the line items and the eligibility message all continue to
+	 * describe the cart as it was a moment ago.
+	 *
+	 * Matched on the request body rather than by wrapping their code, so no assumption is made
+	 * about which of their handlers ran. `update_order_review` is itself an admin-ajax-free
+	 * `wc-ajax` call whose body carries none of these action names, so this cannot re-trigger
+	 * itself.
+	 */
+	$( document ).ajaxComplete( function ( event, xhr, settings ) {
+		var body = ( settings && typeof settings.data === 'string' ) ? settings.data : '';
+
+		if ( /action=[^&]*(itg_|pw_gift|wgb_)/i.test( body ) ) {
+			$( document.body ).trigger( 'update_checkout' );
+		}
+	} );
+
+	/**
+	 * Start the gift carousel.
+	 *
+	 * The gift plugin renders its picker as an owl-carousel and initialises it on document
+	 * ready — but our copy is rebuilt on every refresh, so from the second render onwards the
+	 * markup exists with nothing driving it. An uninitialised owl carousel is not merely
+	 * unstyled: its slides are laid out end to end at full width, which is what pushed the
+	 * order summary wider than its column and squeezed the customer details beside it.
+	 *
+	 * `it-enhanced-carousel` is the plugin's own event for exactly this, so the carousel is
+	 * built with the store's own settings — speed, loop, dots, nav, rtl — rather than a second
+	 * copy of that configuration living here and drifting.
+	 */
+	/**
+	 * Add a gift without losing the form.
+	 *
+	 * The gift plugin offers two controls, and only one of them is a problem here:
+	 *
+	 *   "Select Gift"  variable products. A <div> bound with
+	 *                  jQuery(document).on('click', '.btn-select-gift-button') — delegated on
+	 *                  document, so it survives our fragment replacements and opens their
+	 *                  variation modal unaided. Nothing to do.
+	 *
+	 *   "Add Gift"     simple products. A plain <a href="?pw_add_gift=...">, with no JavaScript
+	 *                  bound to it at all. Their handler runs on `wp`, adds the item and calls
+	 *                  wp_safe_redirect() — a full page load.
+	 *
+	 * On a cart page that reload costs nothing. On checkout it discards everything typed into
+	 * the form, which is a bad trade for choosing a free gift. The click is therefore fetched in
+	 * the background instead: the same URL, so their handler does exactly what it always does,
+	 * and the refresh that follows brings the new line, the totals and the eligibility message
+	 * up to date.
+	 *
+	 * The redirect they issue is followed by the browser and its body discarded. That is one
+	 * wasted page render server-side, in exchange for the customer keeping their address.
+	 */
+	$( document.body ).on( 'click', '.beeoch-opc-gift a.wgb-add-gift-btn[href*="pw_add_gift"]', function ( event ) {
+		var $link = $( this );
+		var url = $link.attr( 'href' );
+
+		if ( ! url || $link.hasClass( 'beeoch-opc-busy' ) ) {
+			return;
+		}
+
+		event.preventDefault();
+
+		$link.addClass( 'beeoch-opc-busy' );
+		$( '.beeoch-opc-gift' ).attr( 'data-state', 'busy' );
+
+		$.get( url ).always( function () {
+			$link.removeClass( 'beeoch-opc-busy' );
+
+			/*
+			 * Always, not done: their handler redirects, and a redirect the browser declines to
+			 * follow still means the gift was added. Refreshing regardless is correct — the
+			 * refresh is what tells us the truth either way.
+			 */
+			$( document.body ).trigger( 'update_checkout' );
+		} );
+	} );
+
+	/**
+	 * On mobile, put the whole order-review column — the shipping bar, gifts, promotions, and
+	 * the cart itself — above billing.
+	 *
+	 * Anchored on `#customer_details` — the billing form's own id — rather than on Elementor's
+	 * `.e-checkout__column-start` / `-end` classes. Which of those two columns holds billing and
+	 * which holds the order review is a per-site setting in the checkout widget, not something
+	 * fixed by Elementor's markup; this store's local and staging copies were confirmed to
+	 * differ on exactly that. An id-anchored move works no matter which column billing is
+	 * configured into, so nothing here depends on that setting either way.
+	 *
+	 * The five are inserted before billing in the SAME relative order desktop already gives them
+	 * — shipping bar, heading, cart table, gift, promotions — read straight off the `order:`
+	 * values desktop assigns them inside `.e-checkout__order_review` (-1, 0, 1, 2, 3
+	 * respectively). This is not a new order invented for mobile; it is desktop's own ordering,
+	 * simply relocated as one block to sit above billing instead of beside it. An earlier
+	 * version of this function inserted gift and promotions first and the cart last, which put
+	 * gift ahead of the cart on mobile even though desktop has always shown the cart first —
+	 * worth remembering if "mobile doesn't match desktop" comes up again: check the `order:`
+	 * values here rather than re-guessing. The shipping bar itself was left out of this list
+	 * entirely when it was first added, which is exactly that mistake again — it stayed behind
+	 * in `.e-checkout__order_review` while everything else here was pulled out from under it,
+	 * so it ended up wherever that now-emptier column happened to sit, ahead of payment.
+	 *
+	 * Gated to the same `max-width: 1024px` breakpoint the rest of the stylesheet uses for
+	 * "mobile" (§38, §44), so desktop is never touched — this only ever runs below that width.
+	 *
+	 * Safe to call repeatedly: moving an already-correctly-placed element is a no-op. Called on
+	 * first paint and after every refresh because the shipping bar and the gift block are both
+	 * order-review AJAX fragments and are replaced wholesale each time; WooCommerce's fragment
+	 * swap re-inserts the new copy at the DOM position of the node it replaced, so once moved it
+	 * stays moved, but this still runs every time in case any of these nodes is ever rebuilt
+	 * from scratch rather than replaced in place.
+	 */
+	function reorderForMobile() {
+		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
+			return;
+		}
+
+		var $billing = $( '#customer_details' );
+
+		if ( ! $billing.length ) {
+			return;
+		}
+
+		// In this order — each insertBefore places its element immediately ahead of billing,
+		// so inserting later in this list is what keeps that item closest to it.
+		[ '.beeoch-opc-shipping-bar', '#order_review_heading', '#order_review', '.beeoch-opc-gift', '.beeoch-opc-promo' ].forEach(
+			function ( selector ) {
+				var $el = $( selector );
+
+				if ( $el.length ) {
+					$el.insertBefore( $billing );
+				}
+			}
+		);
+	}
+
+	/**
+	 * On mobile, give the plan control its own full-width row.
+	 *
+	 * `.beeoch-opc-plan` lives inside `td.product-name`, and that cell is capped at
+	 * `var(--opc-name-col)` — 78% of the table — by `table-layout: fixed`, with the rest
+	 * reserved for the price column. No width or `align-self` on a descendant can exceed its
+	 * own containing block, so a child of that cell is hard-limited to 78% of the table no
+	 * matter what it declares; that cap, not alignment, is what was making the select narrow
+	 * once §37's stretch fix ruled the flex-centring theory out.
+	 *
+	 * The stepper is left where it is — it is small by nature and was never the complaint.
+	 * Only the plan control moves, into a new `<td colspan="2">` in a row of its own, which
+	 * table-layout sizes to the FULL table width by construction rather than to either column.
+	 *
+	 * Mobile only, and re-run on every refresh rather than tracked as "already done": the order
+	 * review table is one of WooCommerce's own AJAX fragments and is replaced wholesale on every
+	 * update, server-rendered fresh with `.beeoch-opc-plan` back in its original cell each time.
+	 * There is nothing to preserve between refreshes, only somewhere to redo the move.
+	 */
+	function spanPlanFullWidth() {
+		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
+			return;
+		}
+
+		$( '.beeoch-opc-plan' ).each( function () {
+			var $plan = $( this );
+			var $row = $plan.closest( 'tr' );
+
+			if ( ! $row.length ) {
+				return;
+			}
+
+			/*
+			 * Marks the original row so its own border-bottom can be suppressed in CSS — with
+			 * the plan control moved out, that border would otherwise sit BETWEEN the product
+			 * line and its own plan control, reading as a separator inside one entry rather
+			 * than the boundary at the end of it.
+			 */
+			$row
+				.addClass( 'beeoch-opc-has-plan-row' )
+				.after(
+					$( '<tr/>', { 'class': 'beeoch-opc-plan-row' } ).append(
+						$( '<td/>', { colspan: 2 } ).append( $plan )
+					)
+				);
+		} );
+	}
+
+	function startCarousel( attempt ) {
+		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
+
+		if ( ! $items.length ) {
+			return;
+		}
+
+		/*
+		 * Their listener for this event is registered inside their own `jQuery(function(){})`,
+		 * so on first paint it is a race: if our ready handler runs before theirs, the trigger
+		 * lands on nothing and the carousel silently never starts — which is exactly what it
+		 * looked like, slides laid out end to end with no error anywhere.
+		 *
+		 * So the trigger is retried a few times, stopping as soon as owl marks the element
+		 * `.owl-loaded`. Retrying is safe: their handler re-initialises whatever it finds, and
+		 * anything already loaded is filtered out above.
+		 */
+		$( document.body ).trigger( 'it-enhanced-carousel' );
+
+		attempt = attempt || 0;
+
+		if ( attempt < 4 ) {
+			window.setTimeout( function () {
+				startCarousel( attempt + 1 );
+			}, 250 * ( attempt + 1 ) );
+		} else if ( ! $.fn.owlCarousel ) {
+			/*
+			 * owl is not on the page at all. Nothing more to try — §44 lays the slides out as a
+			 * contained grid so the picker still works and cannot resize the checkout.
+			 */
+			$( '.beeoch-opc-gift' ).attr( 'data-carousel', 'unavailable' );
+		}
+	}
+
+	$( document.body ).on( 'change', '.beeoch-opc-plan select, .beeoch-opc-plan input[type="radio"]', function () {
+		$( this ).closest( '.beeoch-opc-plan' ).attr( 'data-state', 'busy' );
+		$( document.body ).trigger( 'update_checkout' );
+	} );
+
 	$( document.body ).on( 'change', '.beeoch-opc-qty__input', function () {
 		var $input = $( this );
 		var $control = $input.closest( '.beeoch-opc-qty' );
-		var next = clamp( $control, parseInt( $input.val(), 10 ) );
+		var requested = parseInt( $input.val(), 10 );
+		var next = clamp( $control, requested );
+
+		/*
+		 * A typed value above the limit is held down to it. Said immediately here, and again by
+		 * the server in WooCommerce's notice group — the refresh replaces this table and takes
+		 * this hint with it, and the server's copy is the one that is authoritative anyway,
+		 * since stock can have moved since the page was rendered.
+		 */
+		if ( ! isNaN( requested ) && requested > next && ! isNaN( maxOf( $control ) ) ) {
+			hint( $control, ( I18N.stockMax || 'Only %d left in stock.' ).replace( '%d', next ) );
+		}
 
 		$input.val( next );
 		$control.attr( 'data-state', 'busy' );
@@ -211,6 +524,9 @@
 		 */
 		gather();
 		wrapRows();
+		startCarousel();
+		reorderForMobile();
+		spanPlanFullWidth();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -253,7 +569,10 @@
 	 * copy was left sitting in its default position — the customer saw the form twice.
 	 * '[id="..."]' goes through querySelectorAll and returns both.
 	 */
-	var GATHER = [ '.e-coupon-box', '[id="pwgc-redeem-gift-card-form"]' ];
+	var GATHER = [
+		{ selector: '.e-coupon-box', slot: 'coupon' },
+		{ selector: '[id="pwgc-redeem-gift-card-form"]', slot: 'gift-card' }
+	];
 
 	/**
 	 * Rows we build client-side, because these blocks arrive by DOM move rather than being
@@ -355,9 +674,14 @@
 			return;
 		}
 
-		$.each( GATHER, function ( _, selector ) {
-			var $inPanel = $body.find( selector );
-			var $fresh = $( selector ).not( $inPanel );
+		$.each( GATHER, function ( _, spec ) {
+			var $slot = $body.find( '[data-beeoch-slot="' + spec.slot + '"]' );
+			var $target = $slot.length ? $slot.find( '.beeoch-opc-acc__body' ).first() : $body;
+			var $inPanel = $body.find( spec.selector );
+			var $fresh = $( spec.selector ).not( $inPanel ).filter( function () {
+				// An empty wrapper is not the block — Elementor emits `.e-coupon-box` either way.
+				return $( this ).children().length > 0;
+			} );
 
 			if ( ! $fresh.length ) {
 				return;
@@ -372,11 +696,44 @@
 			$inPanel.remove();
 			$fresh.slice( 1 ).remove();
 
+			/*
+			 * `beeoch-opc-promo__item` marks a ROW of the panel. A block moved into a slot is
+			 * not a row — the slot is — so it takes only the `--gathered` marker, which is what
+			 * the flattening rules key on. Tagging it as a row as well nested one row inside
+			 * another and let row-level spacing apply twice.
+			 */
 			$fresh
 				.first()
-				.addClass( 'beeoch-opc-promo__item beeoch-opc-promo__item--gathered' )
-				.appendTo( $body );
+				.addClass(
+					$slot.length
+						? 'beeoch-opc-promo__item--gathered'
+						: 'beeoch-opc-promo__item beeoch-opc-promo__item--gathered'
+				)
+				.appendTo( $target );
+
+			if ( $slot.length ) {
+				/*
+				 * The row already exists, so wrapRows() must not build a second one around
+				 * the same block. Marking it wrapped here is what keeps the two paths from
+				 * fighting: server-rendered row + moved content, or client-built row — never
+				 * both for one block.
+				 */
+				$fresh.first().data( 'beeochWrapped', true ).addClass( 'beeoch-opc-wrapped' );
+				$slot.find( '.beeoch-opc-acc' ).removeClass( 'beeoch-opc-acc--pending' );
+			}
 		} );
+
+		/*
+		 * Any slot still pending has nothing to receive — the plugin is inactive, or the
+		 * customer is not eligible — so the reserved row is removed rather than left as a
+		 * header that opens onto nothing.
+		 */
+		$body.find( '.beeoch-opc-acc--pending' ).closest( '[data-beeoch-slot]' ).remove();
+
+		// A panel holding nothing but removed slots is a heading with no content.
+		if ( ! $body.children().length ) {
+			$body.closest( '.beeoch-opc-promo' ).remove();
+		}
 	}
 
 	/**
@@ -459,5 +816,8 @@
 		bind();
 		gather();
 		wrapRows();
+		startCarousel();
+		reorderForMobile();
+		spanPlanFullWidth();
 	} );
 } )( jQuery );

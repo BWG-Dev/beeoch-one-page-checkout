@@ -12,8 +12,13 @@ namespace Beeoch\OPC\Orchestration;
 use Beeoch\OPC\Cart\ItemPolicy;
 use Beeoch\OPC\Cart\MutationHandler;
 use Beeoch\OPC\Cart\Mutations;
+use Beeoch\OPC\Cart\SchemeUpdate;
+use Beeoch\OPC\Render\FreeGift;
+use Beeoch\OPC\Render\FreeShipping;
+use Beeoch\OPC\Render\ItemName;
 use Beeoch\OPC\Render\Promotions;
 use Beeoch\OPC\Render\QuantityControl;
+use Beeoch\OPC\Render\SubscriptionOptions;
 use Beeoch\OPC\Support\Flag;
 
 defined( 'ABSPATH' ) || exit;
@@ -45,9 +50,14 @@ class Layout {
 	 * Hook in.
 	 */
 	public function register(): void {
+		( new ItemName() )->register();
 		( new QuantityControl( $this->policy ) )->register();
+		( new SubscriptionOptions() )->register();
+		( new FreeShipping() )->register();
+		( new FreeGift() )->register();
 		( new Promotions() )->register();
 		( new MutationHandler( new Mutations( $this->policy ) ) )->register();
+		( new SchemeUpdate() )->register();
 		( new CartRedirect() )->register();
 
 		/*
@@ -96,6 +106,11 @@ class Layout {
 			'beeochOpc',
 			array(
 				'version' => BEEOCH_OPC_VERSION,
+				'i18n'    => array(
+					/* translators: %d: number of units still in stock. */
+					'stockMax' => __( 'Only %d left in stock.', 'beeoch-opc' ),
+					'minOne'   => __( 'Use the × button to remove this item.', 'beeoch-opc' ),
+				),
 			)
 		);
 	}
