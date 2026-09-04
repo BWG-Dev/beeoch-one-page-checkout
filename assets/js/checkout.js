@@ -338,8 +338,8 @@
 	} );
 
 	/**
-	 * On mobile, put the whole order-review column — gifts, promotions, and the cart itself —
-	 * above billing.
+	 * On mobile, put the whole order-review column — the shipping bar, gifts, promotions, and
+	 * the cart itself — above billing.
 	 *
 	 * Anchored on `#customer_details` — the billing form's own id — rather than on Elementor's
 	 * `.e-checkout__column-start` / `-end` classes. Which of those two columns holds billing and
@@ -348,24 +348,28 @@
 	 * differ on exactly that. An id-anchored move works no matter which column billing is
 	 * configured into, so nothing here depends on that setting either way.
 	 *
-	 * The four are inserted before billing in the SAME relative order desktop already gives them
-	 * — heading, cart table, gift, promotions — read straight off the `order:` values desktop
-	 * assigns them inside `.e-checkout__order_review` (0, 1, 2, 3 respectively). This is not a
-	 * new order invented for mobile; it is desktop's own ordering, simply relocated as one block
-	 * to sit above billing instead of beside it. An earlier version of this function inserted
-	 * gift and promotions first and the cart last, which put gift ahead of the cart on mobile
-	 * even though desktop has always shown the cart first — worth remembering if "mobile doesn't
-	 * match desktop" comes up again: check the `order:` values here rather than re-guessing.
+	 * The five are inserted before billing in the SAME relative order desktop already gives them
+	 * — shipping bar, heading, cart table, gift, promotions — read straight off the `order:`
+	 * values desktop assigns them inside `.e-checkout__order_review` (-1, 0, 1, 2, 3
+	 * respectively). This is not a new order invented for mobile; it is desktop's own ordering,
+	 * simply relocated as one block to sit above billing instead of beside it. An earlier
+	 * version of this function inserted gift and promotions first and the cart last, which put
+	 * gift ahead of the cart on mobile even though desktop has always shown the cart first —
+	 * worth remembering if "mobile doesn't match desktop" comes up again: check the `order:`
+	 * values here rather than re-guessing. The shipping bar itself was left out of this list
+	 * entirely when it was first added, which is exactly that mistake again — it stayed behind
+	 * in `.e-checkout__order_review` while everything else here was pulled out from under it,
+	 * so it ended up wherever that now-emptier column happened to sit, ahead of payment.
 	 *
 	 * Gated to the same `max-width: 1024px` breakpoint the rest of the stylesheet uses for
 	 * "mobile" (§38, §44), so desktop is never touched — this only ever runs below that width.
 	 *
 	 * Safe to call repeatedly: moving an already-correctly-placed element is a no-op. Called on
-	 * first paint and after every refresh because the gift block is an order-review AJAX
-	 * fragment and is replaced wholesale each time; WooCommerce's fragment swap re-inserts the
-	 * new copy at the DOM position of the node it replaced, so once moved it stays moved, but
-	 * this still runs every time in case any of these nodes is ever rebuilt from scratch rather
-	 * than replaced in place.
+	 * first paint and after every refresh because the shipping bar and the gift block are both
+	 * order-review AJAX fragments and are replaced wholesale each time; WooCommerce's fragment
+	 * swap re-inserts the new copy at the DOM position of the node it replaced, so once moved it
+	 * stays moved, but this still runs every time in case any of these nodes is ever rebuilt
+	 * from scratch rather than replaced in place.
 	 */
 	function reorderForMobile() {
 		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
@@ -380,7 +384,7 @@
 
 		// In this order — each insertBefore places its element immediately ahead of billing,
 		// so inserting later in this list is what keeps that item closest to it.
-		[ '#order_review_heading', '#order_review', '.beeoch-opc-gift', '.beeoch-opc-promo' ].forEach(
+		[ '.beeoch-opc-shipping-bar', '#order_review_heading', '#order_review', '.beeoch-opc-gift', '.beeoch-opc-promo' ].forEach(
 			function ( selector ) {
 				var $el = $( selector );
 
