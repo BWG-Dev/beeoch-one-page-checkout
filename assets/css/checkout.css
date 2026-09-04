@@ -2750,3 +2750,17 @@
 .beeoch-opc-active .beeoch-opc-shipping-bar .woocommerce-info {
 	margin: 0;
 }
+
+/* --------------------------------------------------------------------------
+ * 50. Space between cart items, now that §30 draws no line there
+ *
+ * Dropping tbody from §30's row border removed the only thing separating one cart item from
+ * the next. Extra bottom padding on tbody cells stands in for it — added on top of the base
+ * `0.5em 0` from line 169, not replacing it, so the text inside each row keeps its existing
+ * breathing room and only the gap BETWEEN rows grows.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr td,
+.beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr th {
+	padding-bottom: 20px !important;
+}
