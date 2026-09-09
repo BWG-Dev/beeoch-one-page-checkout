@@ -2764,3 +2764,240 @@
 .beeoch-opc-active table.woocommerce-checkout-review-order-table tbody tr th {
 	padding-bottom: 20px !important;
 }
+
+/* --------------------------------------------------------------------------
+ * 51. Free-shipping bar icon
+ *
+ * Astra's `.woocommerce-info::before` draws an icon-font glyph (`content: "\e028"` in the
+ * `WooCommerce` icon font). Where that font doesn't load in this context the glyph falls back
+ * to the browser's missing-glyph box — the "default square" the store wanted replaced.
+ *
+ * Swapped for the store's own SVG, scoped to this bar only (`.beeoch-opc-shipping-bar
+ * .woocommerce-info`) so every other WooCommerce notice on the site keeps its own default icon
+ * untouched. Applied as a mask rather than a background image so the icon always matches the
+ * notice's own text colour (`currentColor`) instead of carrying a fixed one of its own; `top`,
+ * `left`, `position` and `display` are left to Astra's own rule, since only the glyph itself is
+ * being replaced.
+ * ----------------------------------------------------------------------- */
+
+.beeoch-opc-active .beeoch-opc-shipping-bar .woocommerce-info::before {
+	content: '' !important;
+	width: 1.3em;
+	height: 1.3em;
+	top: 0.9em;
+	background-color: currentColor;
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40.029 40.029'%3E%3Cpath d='M34.408,10.246L23.48,10.367l-5.359,9.527l5.572,9.402l10.928-0.123l5.359-9.525L34.408,10.246z M33.661,27.551l-9.043,0.104l-4.61-7.781l4.434-7.883l9.043-0.102l4.609,7.779L33.661,27.551z'/%3E%3Cpath d='M16.549,18.932l5.357-9.527L16.334,0L5.406,0.125L0.049,9.65l5.57,9.402L16.549,18.932z M6.365,1.746l9.047-0.102l4.607,7.781l-4.432,7.883l-9.044,0.104L1.936,9.629L6.365,1.746z'/%3E%3Cpath d='M5.644,21.098l-5.358,9.525l5.57,9.406l10.93-0.123l5.357-9.527l-5.571-9.406L5.644,21.098z M15.823,38.283l-9.044,0.104L2.17,30.602l4.433-7.881l9.046-0.105l4.607,7.783L15.823,38.283z'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40.029 40.029'%3E%3Cpath d='M34.408,10.246L23.48,10.367l-5.359,9.527l5.572,9.402l10.928-0.123l5.359-9.525L34.408,10.246z M33.661,27.551l-9.043,0.104l-4.61-7.781l4.434-7.883l9.043-0.102l4.609,7.779L33.661,27.551z'/%3E%3Cpath d='M16.549,18.932l5.357-9.527L16.334,0L5.406,0.125L0.049,9.65l5.57,9.402L16.549,18.932z M6.365,1.746l9.047-0.102l4.607,7.781l-4.432,7.883l-9.044,0.104L1.936,9.629L6.365,1.746z'/%3E%3Cpath d='M5.644,21.098l-5.358,9.525l5.57,9.406l10.93-0.123l5.357-9.527l-5.571-9.406L5.644,21.098z M15.823,38.283l-9.044,0.104L2.17,30.602l4.433-7.881l9.046-0.105l4.607,7.783L15.823,38.283z'/%3E%3C/svg%3E");
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-size: contain;
+	mask-size: contain;
+}
+
+/* --------------------------------------------------------------------------
+ * 52. Tax AND Shipping rows: a real full-width cell via colspan, not a CSS escape — MOBILE ONLY
+ *
+ * Every earlier attempt here (`display: block`, `display: flex`, explicit `width: 100%` /
+ * `auto`, `!important`, even switching the whole table to `table-layout: auto`) tried to get
+ * `tr.tax-total`/`tr.tax-rate`/`tr.shipping`'s own box to reach the table's full width while the
+ * row stayed inside `<tfoot>` (`display: table-footer-group`). None of it held up under DevTools
+ * box measurement — that combination has an ambiguous containing block for width in every
+ * browser tested here, regardless of the table's layout algorithm.
+ *
+ * `checkout.js`'s `spanTaxAndShippingFullWidth()` sidesteps the ambiguity the same way this same
+ * file's own `spanPlanFullWidth()` already does for the plan control (§ "Give the plan control
+ * its own full-width row"): it moves the `<th>` label and `<td>` value into ONE
+ * `<td colspan="2">`. A cell spanning both columns is sized to the table's full width by
+ * construction, as ordinary table layout — no display escape, no guessing. The `<th>` label
+ * becomes `<strong class="beeoch-opc-tfoot-label">` at the front of that cell; the value becomes
+ * `<span class="beeoch-opc-tfoot-value">`. Styled below, once the JS has run.
+ *
+ * IMPORTANT, found by measuring actual pixel geometry (getBoundingClientRect) after several
+ * rounds of `display: block`/`flex` on the colspan cell itself all silently losing the width
+ * colspan is there for: `colspan="2"` only spans both columns' combined width while the cell
+ * stays `display: table-cell` (the default — confirmed with a plain, unstyled `<td colspan="2">`
+ * inserted into this exact table, which measured at the table's full width). The instant its own
+ * `display` changes to `block`/`flex`, colspan becomes irrelevant to sizing — the cell measured
+ * at exactly ONE column's width instead, no matter how many `!important`s were piled onto
+ * `width`/`max-width` afterwards, because it had already left table-cell layout, where colspan
+ * lives, before those properties were ever considered. So: the `<td colspan="2">` itself keeps
+ * `display: table-cell` (not set below — simply not overridden). Only its CHILDREN get styled:
+ * `float: right` puts the value at the cell's right edge while `<strong>` (inline by default)
+ * keeps the label on the same line, immediately in front of it — no flex, no block, no escape
+ * from table layout needed at all. Shipping's heading-above-list look needs nothing fancier
+ * either: `<strong>` is inline, but forcing IT (not the cell) to `display: block` alone puts a
+ * line break before the value that follows, same as it would inside a plain `<div>`.
+ *
+ * An Elementor-generated rule (`.woocommerce-checkout-review-order-table tfoot tr th, ...tfoot
+ * tr td { font-weight: 600 }`) bolds every tfoot cell. Client wants the "Tax" label to stay bold
+ * (untouched, so that rule keeps applying to `.beeoch-opc-tfoot-label`) but the value — an
+ * amount, or the long placeholder sentence — regular weight and right-aligned, matching how
+ * Subtotal/Total's amounts already read on this table.
+ *
+ * The two rows the JS restructures were previously handled by row-level CSS: §38 blockifies
+ * `tr.shipping` UNCONDITIONALLY (desktop included, by design), which would now fight the JS —
+ * a blockified row is exactly the ambiguous-containing-block case above, and undoes the very
+ * thing colspan was reached for. Reset back to `table-row` at this same mobile breakpoint so the
+ * row participates in normal table layout again and the colspan cell sizes correctly; desktop is
+ * untouched, since the JS never restructures it there (`spanTaxAndShippingFullWidth()` is itself
+ * mobile-only, matching `spanPlanFullWidth()`).
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	/* Undo §38's unconditional blockify for mobile only — colspan needs a real table-row. */
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping {
+		display: table-row !important;
+		width: auto !important;
+	}
+
+	/*
+	 * `!important` on text-align: `#order_review td:last-child { text-align: right }` (Astra
+	 * core CSS, ID-anchored) matches our colspan cell too, since it is its row's only — therefore
+	 * also last — child. An ID beats any number of classes; only `!important` on our side wins
+	 * against it (confirmed via the client's own DevTools Styles panel).
+	 *
+	 * `max-width: none !important` on the shipping cell against a similarly-matching
+	 * Elementor-generated `.woocommerce-shipping-totals td { max-width: 70px }`.
+	 *
+	 * No `display` override on either `<td colspan>` — see the section comment above: that is
+	 * what was silently breaking colspan's width every previous round.
+	 */
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td[colspan],
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td[colspan] {
+		max-width: none !important;
+		text-align: left !important;
+		/* `table.shop_table td { padding: 10px 10px 10px 0 }` (unconditional, elsewhere in the
+		   cascade) puts 10px between a right-floated value and the table's actual right edge. */
+		padding-right: 0 !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total .beeoch-opc-tfoot-value,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate .beeoch-opc-tfoot-value {
+		float: right !important;
+		font-weight: 400;
+		text-align: right !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td[colspan] {
+		max-width: none !important;
+		text-align: left !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping .beeoch-opc-tfoot-label {
+		display: block;
+		text-align: left !important;
+		padding-bottom: 0.3rem;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping .beeoch-opc-tfoot-value {
+		display: block;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 53. Line-item thumbnail height matches the title's rendered height — MOBILE ONLY
+ *
+ * §39 pins the thumbnail to a fixed 3.25rem square. Stretching it to the title's own height
+ * instead (including when the title wraps to several lines) needs no JS: `.beeoch-opc-item` is
+ * already a flex row (§39), so switching its cross-axis alignment from `flex-start` to `stretch`
+ * makes `.beeoch-opc-item__media` grow to match however tall `.beeoch-opc-item__text` renders.
+ * The `<img>` itself still needs `height: 100%` — a stretched flex item does not itself stretch
+ * a replaced element inside it, since `<img>` sizes from its own intrinsic/attribute dimensions
+ * by default. Width stays fixed and `object-fit: cover` (already set in §39) crops for whatever
+ * aspect ratio results.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active .beeoch-opc-item {
+		align-items: stretch;
+	}
+
+	.beeoch-opc-active .beeoch-opc-item__media img {
+		height: 100%;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 54. Bigger quantity stepper — MOBILE ONLY
+ *
+ * §6/§25 size the stepper for a compact desktop row. Client asked for a bigger touch target on
+ * mobile specifically; desktop is left at its existing size.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active .beeoch-opc-qty {
+		font-size: 1.05rem;
+	}
+
+	.beeoch-opc-active .beeoch-opc-qty__step,
+	.beeoch-opc-active .beeoch-opc-qty__remove {
+		width: 2.1rem;
+		height: 2.1rem;
+		font-size: 1.1rem;
+	}
+
+	.beeoch-opc-active .beeoch-opc-qty__input {
+		width: 2.6rem;
+		height: 2.1rem;
+		font-size: 1.1rem;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 55. Pollen Points earning notice: pink border — MOBILE ONLY
+ *
+ * The plugin's own default (frontend.css) gives `.wpgens-points-earning-notice-inner` a gray
+ * `1px solid #e9ecef` border. Client asked for the same pink used elsewhere on this checkout —
+ * `--opc-primary` (`#f7b8d3`, §16/§25: the Apply buttons and this same qty stepper's +/- circles)
+ * is the saturated pink actually usable as a border color; the accordion rows' pale
+ * `#fff3f9`→`#ffe8f3` (§14-16) is a background gradient, not a border color.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active .wpgens-points-earning-notice-inner {
+		border: 2px solid var( --opc-primary );
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 56. Product name gets more room — MOBILE ONLY
+ *
+ * (This section previously also switched the table to `table-layout: auto`, on the theory that
+ * `fixed` layout was why the tax/shipping rows couldn't reach full width. That theory didn't
+ * hold — §52's colspan rewrite fixed both rows independently of the table's layout algorithm,
+ * and reverting to `fixed` here avoids reopening the exact problem §26 chose `fixed` to prevent:
+ * a long product title competing dynamically with the price column for room.)
+ *
+ * The price column only ever needs room for a short amount ("$36.00"), so most of the row
+ * belongs to the (often multi-line) title instead of sitting as unused space between the two.
+ * `--opc-name-col` (§26) stays 78% at other widths; widened to 82/18 here, mobile only.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	/*
+	 * #order_review-anchored variants added preemptively: §34 already documents an ID-anchored
+	 * `#order_review td.product-name` rule on this exact page (Elementor Custom CSS), and the
+	 * tax/shipping fix above just confirmed — via the client's own DevTools — that an ID beats
+	 * any number of classes here unless matched or `!important`-ed. Belt-and-braces against the
+	 * same class of bug happening a third time.
+	 */
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-name,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-name,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name,
+	#order_review td.product-name,
+	#order_review th.product-name {
+		width: 82% !important;
+		max-width: none !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-total,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-total,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-total,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total,
+	#order_review td.product-total,
+	#order_review th.product-total {
+		width: 18% !important;
+		max-width: none !important;
+	}
+}

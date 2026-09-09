@@ -443,6 +443,63 @@
 		} );
 	}
 
+	/**
+	 * On mobile, give the Tax and Shipping tfoot rows a real full-width cell too.
+	 *
+	 * Same problem as spanPlanFullWidth(), and the same fix. `tr.tax-total`/`tr.tax-rate`/
+	 * `tr.shipping` each hold a `<th>` + `<td>` still locked to the table's fixed/auto-computed
+	 * columns — several rounds of CSS (`display: block`, `display: flex`, explicit `width: 100%`
+	 * and `width: auto`, both `!important`, even switching the table itself to `table-layout:
+	 * auto`) never got either row's own box to actually reach the table's edges, confirmed each
+	 * time via DevTools box measurement. None of that was ever going to work reliably: a row (or
+	 * its cells) escaping table display while its parent `<tfoot>` stays `display:
+	 * table-footer-group` has an ambiguous containing block for percentage/auto width, in every
+	 * browser tested here, regardless of the table's own layout algorithm.
+	 *
+	 * `colspan="2"` sidesteps the ambiguity entirely, the same way the plan control's row already
+	 * does above: a cell spanning both columns is sized to the table's FULL width by construction,
+	 * as an ordinary part of table layout — no display escape, no containing-block guesswork.
+	 *
+	 * The `<th>`'s text becomes a `<strong class="beeoch-opc-tfoot-label">` at the front of the
+	 * cell rather than a separate element, so label and value can still be laid out relative to
+	 * each other in CSS (tax: same line; shipping: heading above its options list) without a
+	 * second cell to size.
+	 *
+	 * Re-run on every refresh rather than tracked as "already done", for the same reason as
+	 * spanPlanFullWidth(): the order review table is a WooCommerce AJAX fragment, replaced
+	 * wholesale server-rendered on every update, so there is nothing to preserve between
+	 * refreshes — each call runs against a fresh `<th>` + `<td>` pair.
+	 */
+	function spanTaxAndShippingFullWidth() {
+		if ( ! window.matchMedia( '(max-width: 1024px)' ).matches ) {
+			return;
+		}
+
+		$(
+			'table.woocommerce-checkout-review-order-table tfoot tr.tax-total, ' +
+			'table.woocommerce-checkout-review-order-table tfoot tr.tax-rate, ' +
+			'table.woocommerce-checkout-review-order-table tfoot tr.shipping'
+		).each( function () {
+			var $row = $( this );
+			var $th = $row.children( 'th' );
+			var $td = $row.children( 'td' );
+
+			if ( ! $th.length || ! $td.length || $td.attr( 'colspan' ) ) {
+				return;
+			}
+
+			var $value = $( '<span/>', { 'class': 'beeoch-opc-tfoot-value' } ).append( $td.contents() );
+
+			$td
+				.empty()
+				.append( $( '<strong/>', { 'class': 'beeoch-opc-tfoot-label' } ).text( $th.text() ) )
+				.append( $value )
+				.attr( 'colspan', 2 );
+
+			$th.remove();
+		} );
+	}
+
 	function startCarousel( attempt ) {
 		var $items = $( '.beeoch-opc-gift .it-owl-carousel-items' ).not( '.owl-loaded' );
 
@@ -527,6 +584,7 @@
 		startCarousel();
 		reorderForMobile();
 		spanPlanFullWidth();
+		spanTaxAndShippingFullWidth();
 
 		// An edit queued while a request was in flight goes out now.
 		if ( pending ) {
@@ -819,5 +877,6 @@
 		startCarousel();
 		reorderForMobile();
 		spanPlanFullWidth();
+		spanTaxAndShippingFullWidth();
 	} );
 } )( jQuery );
