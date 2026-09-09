@@ -2829,7 +2829,7 @@
 		width: 100% !important;
 		max-width: none !important;
 		box-sizing: border-box !important;
-		text-align: right;
+		text-align: left;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
