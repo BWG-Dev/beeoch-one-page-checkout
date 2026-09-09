@@ -13,6 +13,7 @@ use Beeoch\OPC\Cart\ItemPolicy;
 use Beeoch\OPC\Diagnostics\Comparator;
 use Beeoch\OPC\Diagnostics\FragmentAssert;
 use Beeoch\OPC\Orchestration\Layout;
+use Beeoch\OPC\Render\AccountFormHeight;
 use Beeoch\OPC\Support\Flag;
 
 defined( 'ABSPATH' ) || exit;
@@ -40,6 +41,12 @@ class Plugin {
 			( new FragmentAssert() )->register();
 			( new Comparator() )->register();
 		}
+
+		/*
+		 * Independent of the flag below — the My Account login/register height fix is unrelated
+		 * to the checkout redesign and must keep working even with the flag off.
+		 */
+		( new AccountFormHeight() )->register();
 
 		/*
 		 * Orchestration is gated on the flag. With the flag off nothing below registers,
