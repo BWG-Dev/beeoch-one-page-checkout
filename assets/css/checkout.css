@@ -2912,3 +2912,48 @@
 		border: 2px solid var( --opc-primary );
 	}
 }
+
+/* --------------------------------------------------------------------------
+ * 56. Escape `table-layout: fixed`'s locked columns — MOBILE ONLY — and hand
+ *     the freed space to the product name
+ *
+ * §26 committed the table to `table-layout: fixed` with a 78/22 split, computed once from the
+ * header row and applied to EVERY row regardless of that row's own declarations. §38 (shipping)
+ * and §52 (tax) each tried to escape it per-row with `display: block`/`flex`, but a row's
+ * containing-block width is ambiguous while its parent (`<tfoot>`) is still `display:
+ * table-footer-group` under a FIXED table — confirmed via DevTools: neither row's own box
+ * actually reached the table's edges, despite `width: 100%` (then `auto`) with `!important`.
+ *
+ * `table-layout: fixed` is what's forcing that fight, not any one row's CSS. Removing it for
+ * mobile only (desktop's 78/22 split for product rows is untouched, exactly as §26 designed)
+ * gives every row — including the still-`display:block`/`flex`-escaped shipping and tax rows —
+ * a table whose own rendered width is resolved the normal way, no ambiguous containing block.
+ * The escaped rows keep their `display` override rather than reverting to `table-row`/`table-cell`:
+ * under `auto` layout, columns are still sized considering ALL rows sharing that column index,
+ * so an unescaped tax row's long placeholder sentence could otherwise widen (or squeeze) the
+ * product name/price columns it doesn't actually belong to.
+ *
+ * Product name also gets more of the freed width: the price column only ever needs room for a
+ * short amount ("$36.00"), so most of the row belongs to the (often multi-line) title instead of
+ * sitting as unused space between the two.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table {
+		table-layout: auto !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-name,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-name,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name {
+		width: 82% !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-total,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-total,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-total,
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total {
+		width: 18% !important;
+	}
+}
