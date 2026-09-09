@@ -2812,8 +2812,10 @@
  * (`flex: 1 1 auto`) and wraps normally inside that, using the full row instead of 22% of it.
  *
  * An Elementor-generated rule (`.woocommerce-checkout-review-order-table tfoot tr th, ...tfoot
- * tr td { font-weight: 600 }`) bolds every tfoot cell, label and value alike. Client asked for
- * regular weight specifically on this row (Subtotal/Total are unaffected, left as-is).
+ * tr td { font-weight: 600 }`) bolds every tfoot cell, label and value alike. Client wants the
+ * "Tax" label to stay bold (left alone, so Elementor's 600 still applies to `th`) but the value
+ * — an amount, or the long placeholder sentence — regular weight and right-aligned, matching how
+ * Subtotal/Total's amounts already read on this table.
  *
  * Mobile-only (unlike §38, which is unconditional): this was reported as a mobile complaint, and
  * the desktop 78/22 split reads fine there for tax same as it does for subtotal/total.
@@ -2834,7 +2836,6 @@
 		width: auto !important;
 		max-width: none !important;
 		text-align: left;
-		font-weight: 400 !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
@@ -2842,7 +2843,7 @@
 		flex: 1 1 auto;
 		width: auto !important;
 		max-width: none !important;
-		text-align: left;
+		text-align: right;
 		font-weight: 400 !important;
 	}
 }
