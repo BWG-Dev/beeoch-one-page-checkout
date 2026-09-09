@@ -2826,7 +2826,7 @@
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate {
 		display: flex !important;
 		align-items: baseline;
-		width: 100% !important;
+		width: auto !important;
 		gap: 0.4rem;
 	}
 
