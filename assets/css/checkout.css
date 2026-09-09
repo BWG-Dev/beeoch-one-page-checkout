@@ -2846,24 +2846,26 @@
 	 * `max-width: none` for the same reason — an Elementor-generated
 	 * `.woocommerce-shipping-totals td { max-width: 70px }` also matches the shipping cell.
 	 */
+	/*
+	 * `display: block` (not flex): the flex + justify-content/margin-auto approach did not push
+	 * the value to the row's true right edge even with !important on every property involved,
+	 * while shipping's plain `display: block` treatment (below) is confirmed working. Reusing
+	 * that same proven mechanism instead of continuing to debug an unconfirmed one — `float:
+	 * right` on the value achieves "same line, value at the right edge" the classic way, with the
+	 * label ("Tax") as ordinary flow content that wraps around the float rather than a flex peer.
+	 */
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td[colspan],
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td[colspan] {
-		display: flex !important;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 0.4rem;
+		display: block !important;
 		max-width: none !important;
 		text-align: left !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total .beeoch-opc-tfoot-value,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate .beeoch-opc-tfoot-value {
+		float: right !important;
 		font-weight: 400;
 		text-align: right !important;
-		/* Belt-and-braces beside `justify-content: space-between` on the flex parent: margin:auto
-		   on a flex item consumes all free space on that side, pushing it to the row's end even
-		   if something unexpected is neutralising justify-content. */
-		margin-left: auto !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td[colspan] {
