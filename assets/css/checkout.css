@@ -2795,56 +2795,76 @@
 }
 
 /* --------------------------------------------------------------------------
- * 52. Tax row: label and value on one line, full width, regular weight — MOBILE ONLY
+ * 52. Tax AND Shipping rows: a real full-width cell via colspan, not a CSS escape — MOBILE ONLY
  *
- * §26's `table-layout: fixed` 78/22 split belongs to the table, not the row, so `tr.tax-total`
- * (and the itemized `tr.tax-rate` rows) inherit the same 78% label / 22% value split even though
- * they never opt into it — and §33's blanket `white-space: normal !important` on every tfoot
- * cell (added for Subscriptions' recurring-total text) then forces "Taxes will be calculated
- * after you validate your address" to wrap inside that ~22%-wide value cell.
+ * Every earlier attempt here (`display: block`, `display: flex`, explicit `width: 100%` /
+ * `auto`, `!important`, even switching the whole table to `table-layout: auto`) tried to get
+ * `tr.tax-total`/`tr.tax-rate`/`tr.shipping`'s own box to reach the table's full width while the
+ * row stayed inside `<tfoot>` (`display: table-footer-group`). None of it held up under DevTools
+ * box measurement — that combination has an ambiguous containing block for width in every
+ * browser tested here, regardless of the table's layout algorithm.
  *
- * Went through a `display: block` (stacked, shipping-row-style — §38) treatment first, at the
- * client's own request, then back: label and value need to stay on ONE line like Subtotal/Total,
- * just no longer capped at 22%. `display: flex` on the row does that — it escapes the fixed
- * column split the same way `display: block` does (neither is a table-cell any more), but as
- * flex ITEMS in a row the label and value sit side by side instead of stacking. `th` stays
- * content-width (`flex: 0 0 auto`) so it never grows past "Tax"; `td` takes what's left
- * (`flex: 1 1 auto`) and wraps normally inside that, using the full row instead of 22% of it.
+ * `checkout.js`'s `spanTaxAndShippingFullWidth()` sidesteps the ambiguity the same way this same
+ * file's own `spanPlanFullWidth()` already does for the plan control (§ "Give the plan control
+ * its own full-width row"): it moves the `<th>` label and `<td>` value into ONE
+ * `<td colspan="2">`. A cell spanning both columns is sized to the table's full width by
+ * construction, as ordinary table layout — no display escape, no guessing. The `<th>` label
+ * becomes `<strong class="beeoch-opc-tfoot-label">` at the front of that cell; the value becomes
+ * `<span class="beeoch-opc-tfoot-value">`. Styled below, once the JS has run.
+ *
+ * Tax: label and value stay on ONE line, like Subtotal/Total, via `display: flex` on the now-
+ * single `<td>` (not the row). Shipping keeps its existing heading-above-options-list look, via
+ * `display: block` instead.
  *
  * An Elementor-generated rule (`.woocommerce-checkout-review-order-table tfoot tr th, ...tfoot
- * tr td { font-weight: 600 }`) bolds every tfoot cell, label and value alike. Client wants the
- * "Tax" label to stay bold (left alone, so Elementor's 600 still applies to `th`) but the value
- * — an amount, or the long placeholder sentence — regular weight and right-aligned, matching how
+ * tr td { font-weight: 600 }`) bolds every tfoot cell. Client wants the "Tax" label to stay bold
+ * (untouched, so that rule keeps applying to `.beeoch-opc-tfoot-label`) but the value — an
+ * amount, or the long placeholder sentence — regular weight and right-aligned, matching how
  * Subtotal/Total's amounts already read on this table.
  *
- * Mobile-only (unlike §38, which is unconditional): this was reported as a mobile complaint, and
- * the desktop 78/22 split reads fine there for tax same as it does for subtotal/total.
+ * The two rows the JS restructures were previously handled by row-level CSS: §38 blockifies
+ * `tr.shipping` UNCONDITIONALLY (desktop included, by design), which would now fight the JS —
+ * a blockified row is exactly the ambiguous-containing-block case above, and undoes the very
+ * thing colspan was reached for. Reset back to `table-row` at this same mobile breakpoint so the
+ * row participates in normal table layout again and the colspan cell sizes correctly; desktop is
+ * untouched, since the JS never restructures it there (`spanTaxAndShippingFullWidth()` is itself
+ * mobile-only, matching `spanPlanFullWidth()`).
  * ----------------------------------------------------------------------- */
 
 @media ( max-width: 1024px ) {
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate {
-		display: flex !important;
-		align-items: baseline;
+	/* Undo §38's unconditional blockify for mobile only — colspan needs a real table-row. */
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping {
+		display: table-row !important;
 		width: auto !important;
-		gap: 0.4rem;
 	}
 
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > th {
-		flex: 0 0 auto;
-		width: auto !important;
-		max-width: none !important;
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td[colspan],
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td[colspan] {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.4rem;
 		text-align: left;
 	}
 
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td {
-		flex: 1 1 auto;
-		width: auto !important;
-		max-width: none !important;
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total .beeoch-opc-tfoot-value,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate .beeoch-opc-tfoot-value {
+		font-weight: 400;
 		text-align: right;
-		font-weight: 400 !important;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td[colspan] {
+		display: block;
+		text-align: left;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping .beeoch-opc-tfoot-label {
+		display: block;
+		padding-bottom: 0.3rem;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping .beeoch-opc-tfoot-value {
+		display: block;
 	}
 }
 
@@ -2914,35 +2934,20 @@
 }
 
 /* --------------------------------------------------------------------------
- * 56. Escape `table-layout: fixed`'s locked columns — MOBILE ONLY — and hand
- *     the freed space to the product name
+ * 56. Product name gets more room — MOBILE ONLY
  *
- * §26 committed the table to `table-layout: fixed` with a 78/22 split, computed once from the
- * header row and applied to EVERY row regardless of that row's own declarations. §38 (shipping)
- * and §52 (tax) each tried to escape it per-row with `display: block`/`flex`, but a row's
- * containing-block width is ambiguous while its parent (`<tfoot>`) is still `display:
- * table-footer-group` under a FIXED table — confirmed via DevTools: neither row's own box
- * actually reached the table's edges, despite `width: 100%` (then `auto`) with `!important`.
+ * (This section previously also switched the table to `table-layout: auto`, on the theory that
+ * `fixed` layout was why the tax/shipping rows couldn't reach full width. That theory didn't
+ * hold — §52's colspan rewrite fixed both rows independently of the table's layout algorithm,
+ * and reverting to `fixed` here avoids reopening the exact problem §26 chose `fixed` to prevent:
+ * a long product title competing dynamically with the price column for room.)
  *
- * `table-layout: fixed` is what's forcing that fight, not any one row's CSS. Removing it for
- * mobile only (desktop's 78/22 split for product rows is untouched, exactly as §26 designed)
- * gives every row — including the still-`display:block`/`flex`-escaped shipping and tax rows —
- * a table whose own rendered width is resolved the normal way, no ambiguous containing block.
- * The escaped rows keep their `display` override rather than reverting to `table-row`/`table-cell`:
- * under `auto` layout, columns are still sized considering ALL rows sharing that column index,
- * so an unescaped tax row's long placeholder sentence could otherwise widen (or squeeze) the
- * product name/price columns it doesn't actually belong to.
- *
- * Product name also gets more of the freed width: the price column only ever needs room for a
- * short amount ("$36.00"), so most of the row belongs to the (often multi-line) title instead of
- * sitting as unused space between the two.
+ * The price column only ever needs room for a short amount ("$36.00"), so most of the row
+ * belongs to the (often multi-line) title instead of sitting as unused space between the two.
+ * `--opc-name-col` (§26) stays 78% at other widths; widened to 82/18 here, mobile only.
  * ----------------------------------------------------------------------- */
 
 @media ( max-width: 1024px ) {
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table {
-		table-layout: auto !important;
-	}
-
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-name,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name,
 	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-name,
