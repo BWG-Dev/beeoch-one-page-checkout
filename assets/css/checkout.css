@@ -2822,7 +2822,7 @@
 		display: block;
 		width: auto;
 		max-width: none;
-		text-align: left;
+		text-align: right;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
