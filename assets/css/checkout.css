@@ -2838,28 +2838,39 @@
 		width: auto !important;
 	}
 
+	/*
+	 * `!important` throughout this block: `#order_review td:last-child { text-align: right }`
+	 * (Astra core CSS, ID-anchored) matches our colspan cell too, since it is its row's only —
+	 * therefore also last — child. An ID beats any number of classes; only `!important` on our
+	 * side wins against it (confirmed via the client's own DevTools Styles panel). Belt-and-braces
+	 * `max-width: none` for the same reason — an Elementor-generated
+	 * `.woocommerce-shipping-totals td { max-width: 70px }` also matches the shipping cell.
+	 */
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td[colspan],
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td[colspan] {
-		display: flex;
+		display: flex !important;
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 0.4rem;
-		text-align: left;
+		max-width: none !important;
+		text-align: left !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total .beeoch-opc-tfoot-value,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate .beeoch-opc-tfoot-value {
 		font-weight: 400;
-		text-align: right;
+		text-align: right !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td[colspan] {
-		display: block;
-		text-align: left;
+		display: block !important;
+		max-width: none !important;
+		text-align: left !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping .beeoch-opc-tfoot-label {
 		display: block;
+		text-align: left !important;
 		padding-bottom: 0.3rem;
 	}
 
