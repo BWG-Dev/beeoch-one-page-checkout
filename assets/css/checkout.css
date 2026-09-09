@@ -2859,6 +2859,9 @@
 		display: block !important;
 		max-width: none !important;
 		text-align: left !important;
+		/* `table.shop_table td { padding: 10px 10px 10px 0 }` (unconditional, elsewhere in the
+		   cascade) puts 10px between a right-floated value and the table's actual right edge. */
+		padding-right: 0 !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total .beeoch-opc-tfoot-value,
