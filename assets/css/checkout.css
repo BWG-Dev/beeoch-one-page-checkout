@@ -2804,6 +2804,12 @@
  * text) then forces "Taxes will be calculated after you validate your address" to wrap inside
  * that ~22%-wide value cell instead of using the row's full width.
  *
+ * Unlike §38's shipping row, `width: auto` on the blockified cell was not enough on its own to
+ * visibly reach full width here — shipping's `<td>` holds a `display: grid` options list (§38's
+ * own rules) whose content forces the box wide regardless; tax's `<td>` is just short text
+ * (an amount, or the placeholder sentence), so nothing forces the box itself open. `width: 100%
+ * !important` states it explicitly instead of relying on block auto-sizing.
+ *
  * Mobile-only (unlike §38, which is unconditional): this was reported as a mobile complaint, and
  * the desktop 78/22 split reads fine there for tax same as it does for subtotal/total.
  * ----------------------------------------------------------------------- */
@@ -2811,17 +2817,18 @@
 @media ( max-width: 1024px ) {
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate {
-		display: block;
-		width: 100%;
+		display: block !important;
+		width: 100% !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > th,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td {
-		display: block;
-		width: auto;
-		max-width: none;
+		display: block !important;
+		width: 100% !important;
+		max-width: none !important;
+		box-sizing: border-box !important;
 		text-align: right;
 	}
 
