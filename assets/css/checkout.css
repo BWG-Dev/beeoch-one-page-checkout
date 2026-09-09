@@ -2860,6 +2860,10 @@
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate .beeoch-opc-tfoot-value {
 		font-weight: 400;
 		text-align: right !important;
+		/* Belt-and-braces beside `justify-content: space-between` on the flex parent: margin:auto
+		   on a flex item consumes all free space on that side, pushing it to the row's end even
+		   if something unexpected is neutralising justify-content. */
+		margin-left: auto !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td[colspan] {
@@ -2959,17 +2963,30 @@
  * ----------------------------------------------------------------------- */
 
 @media ( max-width: 1024px ) {
+	/*
+	 * #order_review-anchored variants added preemptively: §34 already documents an ID-anchored
+	 * `#order_review td.product-name` rule on this exact page (Elementor Custom CSS), and the
+	 * tax/shipping fix above just confirmed — via the client's own DevTools — that an ID beats
+	 * any number of classes here unless matched or `!important`-ed. Belt-and-braces against the
+	 * same class of bug happening a third time.
+	 */
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-name,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name,
 	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-name,
-	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name {
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name,
+	#order_review td.product-name,
+	#order_review th.product-name {
 		width: 82% !important;
+		max-width: none !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-total,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-total,
 	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-total,
-	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total {
+	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total,
+	#order_review td.product-total,
+	#order_review th.product-total {
 		width: 18% !important;
+		max-width: none !important;
 	}
 }
