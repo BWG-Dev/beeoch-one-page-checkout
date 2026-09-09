@@ -2812,9 +2812,21 @@
  * becomes `<strong class="beeoch-opc-tfoot-label">` at the front of that cell; the value becomes
  * `<span class="beeoch-opc-tfoot-value">`. Styled below, once the JS has run.
  *
- * Tax: label and value stay on ONE line, like Subtotal/Total, via `display: flex` on the now-
- * single `<td>` (not the row). Shipping keeps its existing heading-above-options-list look, via
- * `display: block` instead.
+ * IMPORTANT, found by measuring actual pixel geometry (getBoundingClientRect) after several
+ * rounds of `display: block`/`flex` on the colspan cell itself all silently losing the width
+ * colspan is there for: `colspan="2"` only spans both columns' combined width while the cell
+ * stays `display: table-cell` (the default — confirmed with a plain, unstyled `<td colspan="2">`
+ * inserted into this exact table, which measured at the table's full width). The instant its own
+ * `display` changes to `block`/`flex`, colspan becomes irrelevant to sizing — the cell measured
+ * at exactly ONE column's width instead, no matter how many `!important`s were piled onto
+ * `width`/`max-width` afterwards, because it had already left table-cell layout, where colspan
+ * lives, before those properties were ever considered. So: the `<td colspan="2">` itself keeps
+ * `display: table-cell` (not set below — simply not overridden). Only its CHILDREN get styled:
+ * `float: right` puts the value at the cell's right edge while `<strong>` (inline by default)
+ * keeps the label on the same line, immediately in front of it — no flex, no block, no escape
+ * from table layout needed at all. Shipping's heading-above-list look needs nothing fancier
+ * either: `<strong>` is inline, but forcing IT (not the cell) to `display: block` alone puts a
+ * line break before the value that follows, same as it would inside a plain `<div>`.
  *
  * An Elementor-generated rule (`.woocommerce-checkout-review-order-table tfoot tr th, ...tfoot
  * tr td { font-weight: 600 }`) bolds every tfoot cell. Client wants the "Tax" label to stay bold
@@ -2839,24 +2851,19 @@
 	}
 
 	/*
-	 * `!important` throughout this block: `#order_review td:last-child { text-align: right }`
-	 * (Astra core CSS, ID-anchored) matches our colspan cell too, since it is its row's only —
-	 * therefore also last — child. An ID beats any number of classes; only `!important` on our
-	 * side wins against it (confirmed via the client's own DevTools Styles panel). Belt-and-braces
-	 * `max-width: none` for the same reason — an Elementor-generated
-	 * `.woocommerce-shipping-totals td { max-width: 70px }` also matches the shipping cell.
-	 */
-	/*
-	 * `display: block` (not flex): the flex + justify-content/margin-auto approach did not push
-	 * the value to the row's true right edge even with !important on every property involved,
-	 * while shipping's plain `display: block` treatment (below) is confirmed working. Reusing
-	 * that same proven mechanism instead of continuing to debug an unconfirmed one — `float:
-	 * right` on the value achieves "same line, value at the right edge" the classic way, with the
-	 * label ("Tax") as ordinary flow content that wraps around the float rather than a flex peer.
+	 * `!important` on text-align: `#order_review td:last-child { text-align: right }` (Astra
+	 * core CSS, ID-anchored) matches our colspan cell too, since it is its row's only — therefore
+	 * also last — child. An ID beats any number of classes; only `!important` on our side wins
+	 * against it (confirmed via the client's own DevTools Styles panel).
+	 *
+	 * `max-width: none !important` on the shipping cell against a similarly-matching
+	 * Elementor-generated `.woocommerce-shipping-totals td { max-width: 70px }`.
+	 *
+	 * No `display` override on either `<td colspan>` — see the section comment above: that is
+	 * what was silently breaking colspan's width every previous round.
 	 */
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td[colspan],
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td[colspan] {
-		display: block !important;
 		max-width: none !important;
 		text-align: left !important;
 		/* `table.shop_table td { padding: 10px 10px 10px 0 }` (unconditional, elsewhere in the
@@ -2872,7 +2879,6 @@
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.shipping > td[colspan] {
-		display: block !important;
 		max-width: none !important;
 		text-align: left !important;
 	}
