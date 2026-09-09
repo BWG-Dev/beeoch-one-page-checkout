@@ -2793,3 +2793,110 @@
 	-webkit-mask-size: contain;
 	mask-size: contain;
 }
+
+/* --------------------------------------------------------------------------
+ * 52. Tax row gets the full width too — MOBILE ONLY
+ *
+ * Same problem §38 fixed for shipping: §26's `table-layout: fixed` 78/22 split belongs to the
+ * table, not the row, so `tr.tax-total` (and the itemized `tr.tax-rate` rows) inherit the same
+ * 78% label / 22% value split even though they never opt into it — and §33's blanket
+ * `white-space: normal !important` on every tfoot cell (added for Subscriptions' recurring-total
+ * text) then forces "Taxes will be calculated after you validate your address" to wrap inside
+ * that ~22%-wide value cell instead of using the row's full width.
+ *
+ * Mobile-only (unlike §38, which is unconditional): this was reported as a mobile complaint, and
+ * the desktop 78/22 split reads fine there for tax same as it does for subtotal/total.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate {
+		display: block;
+		width: 100%;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > th,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td {
+		display: block;
+		width: auto;
+		max-width: none;
+		text-align: left;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > th {
+		padding-bottom: 0.2rem;
+	}
+
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
+	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td {
+		padding-top: 0;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 53. Line-item thumbnail height matches the title's rendered height — MOBILE ONLY
+ *
+ * §39 pins the thumbnail to a fixed 3.25rem square. Stretching it to the title's own height
+ * instead (including when the title wraps to several lines) needs no JS: `.beeoch-opc-item` is
+ * already a flex row (§39), so switching its cross-axis alignment from `flex-start` to `stretch`
+ * makes `.beeoch-opc-item__media` grow to match however tall `.beeoch-opc-item__text` renders.
+ * The `<img>` itself still needs `height: 100%` — a stretched flex item does not itself stretch
+ * a replaced element inside it, since `<img>` sizes from its own intrinsic/attribute dimensions
+ * by default. Width stays fixed and `object-fit: cover` (already set in §39) crops for whatever
+ * aspect ratio results.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active .beeoch-opc-item {
+		align-items: stretch;
+	}
+
+	.beeoch-opc-active .beeoch-opc-item__media img {
+		height: 100%;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 54. Bigger quantity stepper — MOBILE ONLY
+ *
+ * §6/§25 size the stepper for a compact desktop row. Client asked for a bigger touch target on
+ * mobile specifically; desktop is left at its existing size.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active .beeoch-opc-qty {
+		font-size: 1.05rem;
+	}
+
+	.beeoch-opc-active .beeoch-opc-qty__step,
+	.beeoch-opc-active .beeoch-opc-qty__remove {
+		width: 2.1rem;
+		height: 2.1rem;
+		font-size: 1.1rem;
+	}
+
+	.beeoch-opc-active .beeoch-opc-qty__input {
+		width: 2.6rem;
+		height: 2.1rem;
+		font-size: 1.1rem;
+	}
+}
+
+/* --------------------------------------------------------------------------
+ * 55. Pollen Points earning notice: pink border — MOBILE ONLY
+ *
+ * The plugin's own default (frontend.css) gives `.wpgens-points-earning-notice-inner` a gray
+ * `1px solid #e9ecef` border. Client asked for the same pink used elsewhere on this checkout —
+ * `--opc-primary` (`#f7b8d3`, §16/§25: the Apply buttons and this same qty stepper's +/- circles)
+ * is the saturated pink actually usable as a border color; the accordion rows' pale
+ * `#fff3f9`→`#ffe8f3` (§14-16) is a background gradient, not a border color.
+ * ----------------------------------------------------------------------- */
+
+@media ( max-width: 1024px ) {
+	.beeoch-opc-active .wpgens-points-earning-notice-inner {
+		border: 2px solid var( --opc-primary );
+	}
+}
