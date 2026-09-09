@@ -2795,20 +2795,25 @@
 }
 
 /* --------------------------------------------------------------------------
- * 52. Tax row gets the full width too — MOBILE ONLY
+ * 52. Tax row: label and value on one line, full width, regular weight — MOBILE ONLY
  *
- * Same problem §38 fixed for shipping: §26's `table-layout: fixed` 78/22 split belongs to the
- * table, not the row, so `tr.tax-total` (and the itemized `tr.tax-rate` rows) inherit the same
- * 78% label / 22% value split even though they never opt into it — and §33's blanket
- * `white-space: normal !important` on every tfoot cell (added for Subscriptions' recurring-total
- * text) then forces "Taxes will be calculated after you validate your address" to wrap inside
- * that ~22%-wide value cell instead of using the row's full width.
+ * §26's `table-layout: fixed` 78/22 split belongs to the table, not the row, so `tr.tax-total`
+ * (and the itemized `tr.tax-rate` rows) inherit the same 78% label / 22% value split even though
+ * they never opt into it — and §33's blanket `white-space: normal !important` on every tfoot
+ * cell (added for Subscriptions' recurring-total text) then forces "Taxes will be calculated
+ * after you validate your address" to wrap inside that ~22%-wide value cell.
  *
- * Unlike §38's shipping row, `width: auto` on the blockified cell was not enough on its own to
- * visibly reach full width here — shipping's `<td>` holds a `display: grid` options list (§38's
- * own rules) whose content forces the box wide regardless; tax's `<td>` is just short text
- * (an amount, or the placeholder sentence), so nothing forces the box itself open. `width: 100%
- * !important` states it explicitly instead of relying on block auto-sizing.
+ * Went through a `display: block` (stacked, shipping-row-style — §38) treatment first, at the
+ * client's own request, then back: label and value need to stay on ONE line like Subtotal/Total,
+ * just no longer capped at 22%. `display: flex` on the row does that — it escapes the fixed
+ * column split the same way `display: block` does (neither is a table-cell any more), but as
+ * flex ITEMS in a row the label and value sit side by side instead of stacking. `th` stays
+ * content-width (`flex: 0 0 auto`) so it never grows past "Tax"; `td` takes what's left
+ * (`flex: 1 1 auto`) and wraps normally inside that, using the full row instead of 22% of it.
+ *
+ * An Elementor-generated rule (`.woocommerce-checkout-review-order-table tfoot tr th, ...tfoot
+ * tr td { font-weight: 600 }`) bolds every tfoot cell, label and value alike. Client asked for
+ * regular weight specifically on this row (Subtotal/Total are unaffected, left as-is).
  *
  * Mobile-only (unlike §38, which is unconditional): this was reported as a mobile complaint, and
  * the desktop 78/22 split reads fine there for tax same as it does for subtotal/total.
@@ -2817,29 +2822,28 @@
 @media ( max-width: 1024px ) {
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate {
-		display: block !important;
+		display: flex !important;
+		align-items: baseline;
 		width: 100% !important;
-	}
-
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > th,
-	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td {
-		display: block !important;
-		width: 100% !important;
-		max-width: none !important;
-		box-sizing: border-box !important;
-		text-align: left;
+		gap: 0.4rem;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > th,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > th {
-		padding-bottom: 0.2rem;
+		flex: 0 0 auto;
+		width: auto !important;
+		max-width: none !important;
+		text-align: left;
+		font-weight: 400 !important;
 	}
 
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-total > td,
 	.beeoch-opc-active table.woocommerce-checkout-review-order-table tfoot tr.tax-rate > td {
-		padding-top: 0;
+		flex: 1 1 auto;
+		width: auto !important;
+		max-width: none !important;
+		text-align: left;
+		font-weight: 400 !important;
 	}
 }
 
