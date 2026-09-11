@@ -1687,11 +1687,18 @@
  *   with the price for room — which is why the name kept wrapping no matter what the totals
  *   column was told to do.
  *
- * 78/22 is the split; `--opc-name-col` is the tuning point.
+ * The name column gets whatever the table isn't spending on the total column.
+ * `--opc-total-col` is the tuning point — the only fixed length of the pair, sized just for a
+ * price figure (with room for a struck-through sale price alongside it). It stays static
+ * regardless of table width, while the name column (`width: auto`, the only other column)
+ * absorbs 100% of whatever that leaves — still a static split, not content-driven sizing on
+ * both sides (see §56's note on why that combination was avoided under `table-layout: fixed`),
+ * because only the total column's own width is fixed; the name column's is derived from it, not
+ * measured from its own content.
  * ----------------------------------------------------------------------- */
 
 .beeoch-opc-active {
-	--opc-name-col: 78%;
+	--opc-total-col: 7rem;
 }
 
 .beeoch-opc-active table.woocommerce-checkout-review-order-table {
@@ -1704,15 +1711,15 @@
 
 .beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-name,
 .beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-name {
-	width: var( --opc-name-col ) !important;
+	width: auto !important;
 	white-space: normal !important;
 	overflow-wrap: break-word;
 }
 
 .beeoch-opc-active table.woocommerce-checkout-review-order-table th.product-total,
 .beeoch-opc-active table.woocommerce-checkout-review-order-table td.product-total {
-	width: auto !important;
-	white-space: nowrap !important;
+	width: var( --opc-total-col ) !important;
+	white-space: normal !important;
 }
 
 /* One continuous rule per row, drawn by the cells that now sit flush together. */
@@ -1831,19 +1838,23 @@
 
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table .cart_item td.product-name,
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-name,
-.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name {
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name,
+#order_review td.product-name,
+#order_review th.product-name {
 	max-width: none !important;
-	width: var( --opc-name-col ) !important;
+	width: auto !important;
 	padding-inline-end: 0.75rem !important;
 	padding-right: 0.75rem !important;
 }
 
-/* The totals column keeps only what it needs, so the surplus goes to the name. */
+/* The totals column keeps only what a price figure needs; the name column absorbs the rest. */
 .beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table td.product-total,
-.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total {
+.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total,
+#order_review td.product-total,
+#order_review th.product-total {
 	max-width: none !important;
-	width: auto !important;
-	white-space: nowrap !important;
+	width: var( --opc-total-col ) !important;
+	white-space: normal !important;
 }
 
 /* --------------------------------------------------------------------------
@@ -2970,7 +2981,10 @@
  *
  * The price column only ever needs room for a short amount ("$36.00"), so most of the row
  * belongs to the (often multi-line) title instead of sitting as unused space between the two.
- * `--opc-name-col` (§26) stays 78% at other widths; widened to 82/18 here, mobile only.
+ * §26 made this the rule at every width, not just mobile: the total column is pinned to
+ * `--opc-total-col`, a fixed length, and the name column is `width: auto`, so it automatically
+ * absorbs whatever that leaves — mobile just repeats the same declarations at the higher
+ * specificity this media query already needed for the ID-anchored fight below.
  * ----------------------------------------------------------------------- */
 
 @media ( max-width: 1024px ) {
@@ -2987,7 +3001,7 @@
 	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-name,
 	#order_review td.product-name,
 	#order_review th.product-name {
-		width: 82% !important;
+		width: auto !important;
 		max-width: none !important;
 	}
 
@@ -2997,7 +3011,7 @@
 	.beeoch-opc-active .elementor-widget-woocommerce-checkout-page .woocommerce .woocommerce-checkout-review-order-table th.product-total,
 	#order_review td.product-total,
 	#order_review th.product-total {
-		width: 18% !important;
+		width: var( --opc-total-col ) !important;
 		max-width: none !important;
 	}
 }
