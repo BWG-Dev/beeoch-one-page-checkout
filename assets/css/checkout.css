@@ -180,6 +180,13 @@
 	padding-bottom: 0.4em;
 }
 
+/* "Subtotal" column label removed — the price figures below are self-explanatory. Hidden
+   rather than emptied in the template so the header row keeps the same height as the
+   "Product" label beside it. */
+.beeoch-opc-active .woocommerce-checkout-review-order-table thead th.product-total {
+	visibility: hidden;
+}
+
 .beeoch-opc-active .woocommerce-checkout-review-order-table .product-total,
 .beeoch-opc-active .woocommerce-checkout-review-order-table tfoot td {
 	text-align: right;
@@ -1695,10 +1702,17 @@
  * both sides (see §56's note on why that combination was avoided under `table-layout: fixed`),
  * because only the total column's own width is fixed; the name column's is derived from it, not
  * measured from its own content.
+ *
+ * Trimmed from the original 7rem: the reserved column was wider than a price figure actually
+ * needs, leaving unused space next to it that `product-name`, being derived from this variable,
+ * could not reclaim on its own. Narrowing this is the only way to hand it that space back
+ * without giving `product-name` a literal width of its own — a fixed width there previously
+ * overflowed the row at container sizes it wasn't measured against, since this variable and
+ * `product-name`'s width always sum to exactly 100% of the table either way.
  * ----------------------------------------------------------------------- */
 
 .beeoch-opc-active {
-	--opc-total-col: 7rem;
+	--opc-total-col: 3.75rem;
 }
 
 .beeoch-opc-active table.woocommerce-checkout-review-order-table {
@@ -2281,7 +2295,7 @@
 
 .beeoch-opc-active .beeoch-opc-item__media {
 	flex: 0 0 auto;
-	width: 3.25rem;
+	width: 3.9rem;
 	line-height: 0;
 	border-radius: 6px;
 	overflow: hidden;
@@ -2292,11 +2306,12 @@
  * WooCommerce ships a responsive image with srcset, so width alone would let it pick a size
  * for a box it is not in. Both dimensions are pinned and the aspect ratio is squared off, so
  * every row is the same height whatever shape the original photograph is.
+ * 3.9rem = the original 3.25rem +20%.
  */
 .beeoch-opc-active .beeoch-opc-item__media img {
 	display: block;
-	width: 3.25rem;
-	height: 3.25rem;
+	width: 3.9rem;
+	height: 3.9rem;
 	max-width: none;
 	object-fit: cover;
 	margin: 0;
@@ -2906,27 +2921,13 @@
 }
 
 /* --------------------------------------------------------------------------
- * 53. Line-item thumbnail height matches the title's rendered height — MOBILE ONLY
+ * 53. Line-item thumbnail stays the fixed §39 square on mobile too
  *
- * §39 pins the thumbnail to a fixed 3.25rem square. Stretching it to the title's own height
- * instead (including when the title wraps to several lines) needs no JS: `.beeoch-opc-item` is
- * already a flex row (§39), so switching its cross-axis alignment from `flex-start` to `stretch`
- * makes `.beeoch-opc-item__media` grow to match however tall `.beeoch-opc-item__text` renders.
- * The `<img>` itself still needs `height: 100%` — a stretched flex item does not itself stretch
- * a replaced element inside it, since `<img>` sizes from its own intrinsic/attribute dimensions
- * by default. Width stays fixed and `object-fit: cover` (already set in §39) crops for whatever
- * aspect ratio results.
+ * A previous mobile-only rule here stretched the thumbnail to match the title's rendered
+ * height (flipping `.beeoch-opc-item` to `align-items: stretch` and the `<img>` to
+ * `height: 100%`). Reverted: the thumbnail should stay the fixed 3.25rem square from §39 at
+ * every width, not grow with a wrapped title.
  * ----------------------------------------------------------------------- */
-
-@media ( max-width: 1024px ) {
-	.beeoch-opc-active .beeoch-opc-item {
-		align-items: stretch;
-	}
-
-	.beeoch-opc-active .beeoch-opc-item__media img {
-		height: 100%;
-	}
-}
 
 /* --------------------------------------------------------------------------
  * 54. Bigger quantity stepper — MOBILE ONLY
@@ -2985,6 +2986,16 @@
  * `--opc-total-col`, a fixed length, and the name column is `width: auto`, so it automatically
  * absorbs whatever that leaves — mobile just repeats the same declarations at the higher
  * specificity this media query already needed for the ID-anchored fight below.
+ *
+ * A pass through this section tried pinning the name column to literal pixel widths (312px /
+ * 285px) measured on one device instead of `auto`, on the theory `auto` wasn't giving it enough
+ * room. That broke every OTHER width: those two numbers only fit a container as wide as the
+ * device they were measured on, and this table's actual available width also depends on the
+ * page's own side padding, which isn't fixed across breakpoints or devices — on anything
+ * narrower, `312px + var(--opc-total-col)` exceeded the container and pushed the total column
+ * off-screen. `width: auto` is the responsive equivalent of "take the rest of the row": it
+ * always resolves to exactly `container − var(--opc-total-col)`, whatever that container turns
+ * out to be, so it can't overflow the way a hardcoded number can.
  * ----------------------------------------------------------------------- */
 
 @media ( max-width: 1024px ) {
