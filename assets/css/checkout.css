@@ -1712,7 +1712,7 @@
  * ----------------------------------------------------------------------- */
 
 .beeoch-opc-active {
-	--opc-total-col: 3.75rem;
+	--opc-total-col: 4.375rem;
 }
 
 .beeoch-opc-active table.woocommerce-checkout-review-order-table {
